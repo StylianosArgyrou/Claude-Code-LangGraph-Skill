@@ -9,6 +9,11 @@ from langgraph.graph import MessagesState
 from langgraph.graph.message import add_messages
 ```
 
+### Functional API
+```python
+from langgraph.func import entrypoint, task
+```
+
 ### Types and Commands
 ```python
 from langgraph.types import Send, Command, interrupt
@@ -285,6 +290,80 @@ class FullState(InputState, OutputState):
     intermediate: str
 
 builder = StateGraph(FullState, input=InputState, output=OutputState)
+```
+
+---
+
+## Functional API
+
+### @task — Durable Step
+```python
+from langgraph.func import task
+
+@task
+def my_step(data: str) -> str:
+    """Automatically checkpointed. Call with .result() to get return value."""
+    return f"processed: {data}"
+
+# With retry policy
+@task(retry_policy=RetryPolicy(max_attempts=3))
+def resilient_step(data: str) -> str:
+    return f"processed: {data}"
+```
+
+### @entrypoint — Workflow Entry Point
+```python
+from langgraph.func import entrypoint, task
+from langgraph.checkpoint.memory import InMemorySaver
+
+@task
+def step_a(x: str) -> str:
+    return x.upper()
+
+@task
+def step_b(x: str) -> str:
+    return f"Result: {x}"
+
+@entrypoint(checkpointer=InMemorySaver())
+def my_workflow(input_data: str) -> str:
+    a = step_a(input_data).result()
+    return step_b(a).result()
+
+# Invoke
+config = {"configurable": {"thread_id": "1"}}
+result = my_workflow.invoke("hello", config=config)
+
+# Stream
+for chunk in my_workflow.stream("hello", config=config):
+    print(chunk)
+```
+
+---
+
+## RetryPolicy
+
+```python
+from langgraph.types import RetryPolicy
+
+# Default — retries on common network errors
+RetryPolicy()
+
+# Custom
+RetryPolicy(
+    initial_interval=0.5,   # seconds before first retry
+    backoff_factor=2.0,     # multiplier per retry
+    max_interval=128.0,     # max wait between retries
+    max_attempts=3,         # total attempts including first
+    jitter=True,            # randomize to avoid thundering herd
+    retry_on=Exception,     # exception type(s) to retry on
+)
+
+# On a StateGraph node
+builder.add_node("node", func, retry_policy=RetryPolicy(max_attempts=3))
+
+# On a Functional API task
+@task(retry_policy=RetryPolicy(retry_on=ValueError))
+def my_task(data): ...
 ```
 
 ---

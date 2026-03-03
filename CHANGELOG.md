@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0] - 2026-03-03
+
+### Added
+- Pattern 12: Functional API with `@task` and `@entrypoint` — plain Python workflows with durable checkpointing
+- Pattern 13: Error Handling with `RetryPolicy` — automatic retries with exponential backoff
+- Functional API section in api-reference.md (`entrypoint`, `task`, imports)
+- RetryPolicy section in api-reference.md (parameters, usage on nodes and tasks)
+- Functional API and RetryPolicy rows in SKILL.md decision guide table
+- Functional API and RetryPolicy quick reference sections in SKILL.md
+- Architecture Decision Guide step 7 (Functional API)
+- Implementation Guidelines #11 (RetryPolicy) and #12 (Functional API)
+
 ## [0.2.0] - 2026-03-03
 
 ### Fixed

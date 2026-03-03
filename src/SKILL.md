@@ -33,6 +33,8 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 | Human approval workflows | `interrupt()` + `Command(resume=...)` |
 | Persistent conversations | Checkpointer (`MemorySaver`, `PostgresSaver`) |
 | Long-term user memory | `InMemoryStore` or persistent Store + namespaces |
+| Durable workflows without explicit graphs | Functional API (`@entrypoint` + `@task`) |
+| Automatic retry on transient failures | `RetryPolicy` on nodes or tasks |
 | Production deployment | LangGraph Platform (Cloud/Self-hosted) |
 
 ## Required Dependencies
@@ -78,6 +80,9 @@ When the user wants to build something, follow this decision tree:
 
 6. **Does it need human approval?**
    - Yes -> Add `interrupt()` calls + checkpointer + `Command(resume=...)`
+
+7. **Prefer plain Python over explicit graph construction?**
+   - Yes -> Use Functional API with `@entrypoint` + `@task` decorators
 
 ## Building a Graph — Step by Step
 
@@ -199,6 +204,26 @@ def my_node(state, config, store):
     store.put(("profile", user_id), "key", {"data": "value"})
 ```
 
+### Functional API (No Explicit Graph)
+```python
+from langgraph.func import entrypoint, task
+from langgraph.checkpoint.memory import InMemorySaver
+
+@task
+def step(data: str) -> str:
+    return f"processed: {data}"
+
+@entrypoint(checkpointer=InMemorySaver())
+def workflow(input_data: str) -> str:
+    return step(input_data).result()
+```
+
+### RetryPolicy
+```python
+from langgraph.types import RetryPolicy
+builder.add_node("node", func, retry_policy=RetryPolicy(max_attempts=3))
+```
+
 ### Streaming
 ```python
 # Stream state updates
@@ -254,3 +279,5 @@ When building a LangGraph application:
 8. **Use LangSmith for tracing** — set `LANGCHAIN_TRACING_V2=true` in environment
 9. **Handle errors in nodes** — return error state rather than raising exceptions
 10. **Keep nodes focused** — single responsibility, easy to test and debug
+11. **Use RetryPolicy for external API calls** — handles transient failures with exponential backoff
+12. **Consider Functional API for simple workflows** — `@entrypoint` + `@task` avoids StateGraph boilerplate

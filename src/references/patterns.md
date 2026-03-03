@@ -545,6 +545,142 @@ run = await client.runs.create(thread_id, assistant_id, input=msg,
 
 ---
 
+## Pattern 12: Functional API with @task and @entrypoint
+
+An alternative to StateGraph — write plain Python functions with durable checkpointing.
+Use when you want LangGraph's persistence and retry features without explicit graph construction.
+
+```python
+import uuid
+from langgraph.func import entrypoint, task
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-4o")
+
+@task
+def research(topic: str) -> str:
+    """Each @task is a durable step — automatically checkpointed."""
+    result = llm.invoke(f"Research this topic thoroughly: {topic}")
+    return result.content
+
+@task
+def summarize(research_results: list[str]) -> str:
+    """Combine research into a summary."""
+    combined = "\n\n".join(research_results)
+    result = llm.invoke(f"Summarize these findings:\n{combined}")
+    return result.content
+
+checkpointer = InMemorySaver()
+
+@entrypoint(checkpointer=checkpointer)
+def research_workflow(topics: list[str]) -> str:
+    """Orchestrate tasks — plain Python control flow, no edges needed."""
+    results = []
+    for topic in topics:
+        result = research(topic).result()  # .result() blocks until done
+        results.append(result)
+    return summarize(results).result()
+
+# Run it
+config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+output = research_workflow.invoke(["AI agents", "LangGraph"], config=config)
+print(output)
+```
+
+### Functional API with Human-in-the-Loop
+
+```python
+from langgraph.func import entrypoint, task
+from langgraph.types import interrupt, Command
+from langgraph.checkpoint.memory import InMemorySaver
+
+@task
+def draft_email(topic: str) -> str:
+    return f"Draft email about: {topic}"
+
+@entrypoint(checkpointer=InMemorySaver())
+def email_workflow(topic: str) -> dict:
+    draft = draft_email(topic).result()
+    approved = interrupt({"draft": draft, "action": "Approve or reject?"})
+    return {"draft": draft, "approved": approved}
+
+# First run — pauses at interrupt
+config = {"configurable": {"thread_id": "1"}}
+for chunk in email_workflow.stream("quarterly report", config):
+    print(chunk)
+
+# Resume with approval
+for chunk in email_workflow.stream(Command(resume=True), config):
+    print(chunk)
+```
+
+---
+
+## Pattern 13: Error Handling with RetryPolicy
+
+Configure automatic retries with exponential backoff for transient failures.
+
+### RetryPolicy on StateGraph Nodes
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+from langgraph.types import RetryPolicy
+
+llm = ChatOpenAI(model="gpt-4o")
+
+def unreliable_api_call(state: MessagesState):
+    result = llm.invoke(state["messages"])
+    return {"messages": [result]}
+
+builder = StateGraph(MessagesState)
+builder.add_node(
+    "api_call",
+    unreliable_api_call,
+    retry_policy=RetryPolicy(max_attempts=3, initial_interval=1.0),
+)
+builder.add_edge(START, "api_call")
+builder.add_edge("api_call", END)
+
+graph = builder.compile()
+```
+
+### RetryPolicy on Functional API Tasks
+
+```python
+from langgraph.func import entrypoint, task
+from langgraph.types import RetryPolicy
+from langgraph.checkpoint.memory import InMemorySaver
+
+retry_on_value_error = RetryPolicy(retry_on=ValueError)
+
+@task(retry_policy=retry_on_value_error)
+def flaky_operation(data: str) -> str:
+    # Automatically retries on ValueError
+    return f"Processed: {data}"
+
+@entrypoint(checkpointer=InMemorySaver())
+def workflow(data: str) -> str:
+    return flaky_operation(data).result()
+```
+
+### RetryPolicy Parameters
+
+```python
+RetryPolicy(
+    initial_interval=0.5,   # seconds before first retry
+    backoff_factor=2.0,     # multiplier for each subsequent retry
+    max_interval=128.0,     # maximum wait between retries
+    max_attempts=3,         # total attempts (including first try)
+    jitter=True,            # add randomness to avoid thundering herd
+    retry_on=Exception,     # exception type(s) to retry on
+)
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references

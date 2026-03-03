@@ -77,7 +77,7 @@ src/
 ├── SKILL.md                         # Core skill (architecture guide, quick reference, patterns)
 ├── references/
 │   ├── api-reference.md             # Complete import map, StateGraph API, all signatures
-│   └── patterns.md                  # 11 advanced patterns with full code
+│   └── patterns.md                  # 13 advanced patterns with full code
 └── examples/
     └── complete-examples.md         # 6 production-ready working examples
 ```
@@ -97,6 +97,8 @@ src/
 | Streaming | Values, updates, messages, custom events |
 | Time Travel | State history, replay, and state editing |
 | Double Texting | Handling concurrent user messages |
+| Functional API | `@entrypoint` + `@task` — durable workflows without graphs |
+| Error Handling | `RetryPolicy` with exponential backoff |
 
 ### API Coverage
 
@@ -140,6 +142,12 @@ make all               # Both
 4. GitHub Actions automatically builds and publishes the release with artifacts
 
 ## Changelog
+
+### v0.3.0 — Functional API + Error Handling (2026-03-03)
+- Added Pattern 12: Functional API (`@entrypoint` + `@task`) for durable workflows without explicit graphs
+- Added Pattern 13: Error Handling with `RetryPolicy` — automatic retries with exponential backoff
+- Added Functional API and RetryPolicy sections to api-reference.md
+- Updated SKILL.md decision guide, quick reference, and implementation guidelines
 
 ### v0.2.0 — Bug Fixes (2026-03-03)
 - Fixed all 10 code bugs across patterns and examples — every code block is now copy-paste runnable
