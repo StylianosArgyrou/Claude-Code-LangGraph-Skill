@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0] - 2026-03-03
+
+### Added
+- Pattern 17: Node Caching with `CachePolicy` and `InMemoryCache` — skip redundant node execution for same inputs
+- Pattern 18: Deferred Nodes with `defer=True` — wait for all upstream paths before executing (fan-in barrier)
+- `CachePolicy` and `InMemoryCache` imports in api-reference.md
+- `defer=True` and `cache_policy` parameters to `add_node` documentation
+- `cache=InMemoryCache()` compile parameter documentation
+- Decision guide rows for caching and deferred nodes in SKILL.md
+- Quick reference sections for Node Caching and Deferred Nodes in SKILL.md
+- Implementation Guidelines #16 (CachePolicy for expensive nodes) and #17 (defer=True for fan-in)
+- Isolated subagent test: 1583x caching speedup verified, deferred fan-in confirmed
+
 ## [1.0.0] - 2026-03-03
 
 ### Release

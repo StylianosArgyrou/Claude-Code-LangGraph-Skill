@@ -983,6 +983,110 @@ with RedisSaver.from_conn_string(REDIS_URI) as checkpointer:
 
 ---
 
+## Pattern 17: Node Caching with CachePolicy
+
+Cache node results to skip redundant computation when the same input is seen again.
+Useful for expensive LLM calls, API lookups, or any deterministic node.
+
+```python
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
+from langgraph.types import CachePolicy
+from langgraph.cache.memory import InMemoryCache
+
+class State(TypedDict):
+    query: str
+    result: str
+
+def expensive_lookup(state: State):
+    """Simulates an expensive operation (API call, LLM, etc.)."""
+    import time
+    time.sleep(2)  # Expensive work
+    return {"result": f"Answer for: {state['query']}"}
+
+# Add node with cache_policy — TTL in seconds
+builder = StateGraph(State)
+builder.add_node("lookup", expensive_lookup, cache_policy=CachePolicy(ttl=120))
+builder.add_edge(START, "lookup")
+builder.add_edge("lookup", END)
+
+# Compile with cache backend
+graph = builder.compile(cache=InMemoryCache())
+
+# First call — executes the node (slow)
+result1 = graph.invoke({"query": "LangGraph", "result": ""})
+print(result1["result"])  # "Answer for: LangGraph"
+
+# Second call with same input — returns cached result (fast)
+result2 = graph.invoke({"query": "LangGraph", "result": ""})
+print(result2["result"])  # "Answer for: LangGraph" (from cache)
+
+# Detect cached results in stream
+for chunk in graph.stream({"query": "LangGraph", "result": ""}, stream_mode="updates"):
+    for node, update in chunk.items():
+        if update.get("__metadata__", {}).get("cached"):
+            print(f"{node}: served from cache")
+```
+
+---
+
+## Pattern 18: Deferred Nodes
+
+Deferred nodes wait for all upstream paths to complete before executing.
+Use for fan-in / consensus patterns where a node should only run after all parallel branches finish.
+
+```python
+from typing import Annotated
+from typing_extensions import TypedDict
+from operator import add
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    topic: str
+    analyses: Annotated[list[str], add]
+    summary: str
+
+def analyst_a(state: State):
+    return {"analyses": [f"Technical analysis of {state['topic']}"]}
+
+def analyst_b(state: State):
+    return {"analyses": [f"Market analysis of {state['topic']}"]}
+
+def analyst_c(state: State):
+    return {"analyses": [f"Risk analysis of {state['topic']}"]}
+
+def synthesize(state: State):
+    """Only runs after ALL analyst nodes complete (deferred)."""
+    combined = " | ".join(state["analyses"])
+    return {"summary": f"Synthesis of {len(state['analyses'])} analyses: {combined}"}
+
+builder = StateGraph(State)
+builder.add_node("analyst_a", analyst_a)
+builder.add_node("analyst_b", analyst_b)
+builder.add_node("analyst_c", analyst_c)
+# defer=True — waits for all incoming edges before executing
+builder.add_node("synthesize", synthesize, defer=True)
+
+# Fan-out from START to all analysts
+builder.add_edge(START, "analyst_a")
+builder.add_edge(START, "analyst_b")
+builder.add_edge(START, "analyst_c")
+# All analysts feed into synthesize
+builder.add_edge("analyst_a", "synthesize")
+builder.add_edge("analyst_b", "synthesize")
+builder.add_edge("analyst_c", "synthesize")
+builder.add_edge("synthesize", END)
+
+graph = builder.compile()
+
+result = graph.invoke({"topic": "AI startups", "analyses": [], "summary": ""})
+print(result["summary"])
+# "Synthesis of 3 analyses: Technical analysis... | Market analysis... | Risk analysis..."
+assert len(result["analyses"]) == 3
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references

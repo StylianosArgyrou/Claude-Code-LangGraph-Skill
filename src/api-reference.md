@@ -18,6 +18,12 @@ from langgraph.func import entrypoint, task
 ```python
 from langgraph.types import Send, Command, interrupt
 from langgraph.types import RetryPolicy
+from langgraph.types import CachePolicy
+```
+
+### Node Caching
+```python
+from langgraph.cache.memory import InMemoryCache
 ```
 
 ### Prebuilt Components
@@ -116,6 +122,12 @@ builder.add_node("name", function)
 
 # Auto-named (uses function name)
 builder.add_node(function)
+
+# With cache policy (skip re-execution for same inputs)
+builder.add_node("name", function, cache_policy=CachePolicy(ttl=120))
+
+# Deferred (wait for all upstream paths before executing)
+builder.add_node("name", function, defer=True)
 ```
 
 ### Node Function Signatures
@@ -162,6 +174,9 @@ builder.add_conditional_edges(
 ```python
 # Basic
 graph = builder.compile()
+
+# With node cache
+graph = builder.compile(cache=InMemoryCache())
 
 # With checkpointer
 graph = builder.compile(checkpointer=MemorySaver())

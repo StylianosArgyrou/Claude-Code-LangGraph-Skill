@@ -38,6 +38,8 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 | Adaptive RAG (retrieval + generation) | Conditional routing + retrieval node + LLM generation |
 | Self-correcting / reflexion loops | Conditional cycle: generate → validate → fix |
 | Async / high-concurrency execution | `async def` nodes + `ainvoke` / `astream` |
+| Skip redundant computation | Node caching with `CachePolicy` + `InMemoryCache` |
+| Wait for all branches before proceeding | Deferred nodes with `defer=True` |
 | Production deployment | LangGraph Platform (Cloud/Self-hosted) |
 
 ## Required Dependencies
@@ -245,6 +247,20 @@ async def main():
 asyncio.run(main())
 ```
 
+### Node Caching
+```python
+from langgraph.types import CachePolicy
+from langgraph.cache.memory import InMemoryCache
+builder.add_node("node", func, cache_policy=CachePolicy(ttl=120))
+graph = builder.compile(cache=InMemoryCache())
+```
+
+### Deferred Nodes
+```python
+# Wait for all upstream paths to complete before running
+builder.add_node("synthesize", func, defer=True)
+```
+
 ### Streaming
 ```python
 # Stream state updates
@@ -305,3 +321,5 @@ When building a LangGraph application:
 13. **Use async nodes for web servers and high concurrency** — `async def` nodes with `ainvoke`/`astream` for non-blocking I/O
 14. **Test graphs with pytest** — invoke with known inputs, assert on output state; mock LLMs for fast unit tests
 15. **Extract graph construction into factory functions** — `def build_graph(checkpointer=None)` makes testing and migration easy
+16. **Use CachePolicy for expensive deterministic nodes** — avoids redundant LLM calls or API lookups with `CachePolicy(ttl=seconds)`
+17. **Use defer=True for fan-in nodes** — ensures node waits for all upstream branches to complete before executing

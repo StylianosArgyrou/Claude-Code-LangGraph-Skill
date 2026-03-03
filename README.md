@@ -147,6 +147,12 @@ make all               # Both
 
 ## Changelog
 
+### v1.1.0 — Node Caching + Deferred Nodes (2026-03-03)
+- Added Pattern 17: Node Caching with `CachePolicy` + `InMemoryCache`
+- Added Pattern 18: Deferred Nodes with `defer=True` for fan-in barriers
+- Updated api-reference.md with new imports and `add_node` parameters
+- Updated SKILL.md decision guide and quick reference
+
 ### v1.0.0 — Final Release (2026-03-03)
 - Final audit: 16 patterns, 10 examples, 307-line SKILL.md, all code blocks verified
 - Distribution packages verified (zip, tar.gz, combined single-file)
