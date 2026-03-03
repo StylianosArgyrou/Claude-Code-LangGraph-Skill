@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.0] - 2026-03-03
+
+### Added
+- Pattern 21: Pre/Post Model Hooks for `create_react_agent` — context management and guardrails
+- `pre_model_hook`: trim/summarize messages before each LLM call; supports `llm_input_messages` for non-destructive trimming
+- `post_model_hook`: validate output, add guardrails, or HITL approval after each LLM call
+- Full `create_react_agent` signature with all parameters in api-reference.md
+- Decision guide rows for context management and guardrails in SKILL.md
+- ReAct Agent with Hooks quick reference in SKILL.md
+- Implementation Guidelines #20-21 (pre/post hooks usage)
+
+### Changed
+- Documented `create_react_agent` deprecation: moved to `from langchain.agents import create_agent` in LangGraph v1.0
+- Updated api-reference.md with both new and legacy import paths
+- Isolated subagent test: 2/2 pytest tests passed (pre-model trimming + post-model validation, mocked LLM)
+
 ## [1.3.0] - 2026-03-03
 
 ### Added

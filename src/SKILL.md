@@ -25,7 +25,7 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 
 | Use Case | Pattern |
 |----------|---------|
-| Simple tool-calling agent | `create_react_agent()` |
+| Simple tool-calling agent | `create_react_agent()` (or `create_agent()` in v1.0+) |
 | Custom agent with specific control flow | `StateGraph` + nodes + conditional edges |
 | Multi-step workflow (sequential) | `StateGraph` with linear edges |
 | Parallel processing | `Send()` API for fan-out/fan-in |
@@ -40,6 +40,8 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 | Async / high-concurrency execution | `async def` nodes + `ainvoke` / `astream` |
 | Skip redundant computation | Node caching with `CachePolicy` + `InMemoryCache` |
 | Wait for all branches before proceeding | Deferred nodes with `defer=True` |
+| Manage context window / trim messages | `pre_model_hook` on `create_react_agent` |
+| Guardrails / validation after LLM | `post_model_hook` on `create_react_agent` |
 | Production deployment | LangGraph Platform (Cloud/Self-hosted) |
 
 ## Required Dependencies
@@ -167,6 +169,16 @@ agent = create_react_agent(model, tools, checkpointer=MemorySaver())
 result = agent.invoke(
     {"messages": [("user", "Search for LangGraph docs")]},
     config={"configurable": {"thread_id": "1"}}
+)
+```
+
+### ReAct Agent with Hooks
+```python
+agent = create_react_agent(
+    model, tools,
+    pre_model_hook=trim_messages,    # runs before each LLM call
+    post_model_hook=validate_output, # runs after each LLM call
+    checkpointer=MemorySaver()
 )
 ```
 
@@ -339,3 +351,5 @@ When building a LangGraph application:
 17. **Use defer=True for fan-in nodes** — ensures node waits for all upstream branches to complete before executing
 18. **Prefer `get_stream_writer()` for custom streaming** — call inside any node to emit progress events; consume with `stream_mode="custom"`
 19. **Use chained builder syntax for simple graphs** — `StateGraph(State).add_node(fn).add_edge(START, "fn").compile()` is concise; use traditional style for complex graphs
+20. **Use pre_model_hook for context management** — trim or summarize messages before each LLM call to stay within context limits
+21. **Use post_model_hook for guardrails** — validate LLM output, apply content filters, or add HITL approval after each model call

@@ -1215,6 +1215,72 @@ print(result["text"])  # "start -> A -> B"
 
 ---
 
+## Pattern 21: Pre/Post Model Hooks for create_react_agent
+
+Use `pre_model_hook` to modify context before each LLM call (e.g., trim messages).
+Use `post_model_hook` to add guardrails, validation, or HITL after each LLM call.
+
+### Pre-Model Hook (Message Trimming)
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import RemoveMessage
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
+
+def trim_messages(state):
+    """Keep only the last 10 messages to manage context window."""
+    messages = state["messages"]
+    if len(messages) > 10:
+        # Option A: Remove old messages from state
+        to_remove = [RemoveMessage(id=m.id) for m in messages[:-10]]
+        return {"messages": to_remove}
+        # Option B: Pass trimmed messages to LLM without modifying state
+        # return {"llm_input_messages": messages[-10:]}
+    return {"messages": []}
+
+model = ChatOpenAI(model="gpt-4o")
+tools = []  # your tools here
+
+agent = create_react_agent(
+    model, tools,
+    pre_model_hook=trim_messages,
+    checkpointer=MemorySaver()
+)
+```
+
+### Post-Model Hook (Guardrails / Validation)
+
+```python
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import interrupt
+
+def validate_response(state):
+    """Check LLM output and optionally interrupt for human review."""
+    last_msg = state["messages"][-1]
+    # Example: flag responses that mention sensitive topics
+    if "confidential" in last_msg.content.lower():
+        response = interrupt({
+            "question": "Response mentions confidential info. Approve?",
+            "content": last_msg.content
+        })
+        if response != "yes":
+            from langchain_core.messages import AIMessage
+            return {"messages": [AIMessage(content="I cannot share that information.")]}
+    return {"messages": []}
+
+model = ChatOpenAI(model="gpt-4o")
+agent = create_react_agent(
+    model, tools=[],
+    post_model_hook=validate_response,
+    checkpointer=MemorySaver()
+)
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references

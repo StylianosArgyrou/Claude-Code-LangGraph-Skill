@@ -147,6 +147,13 @@ make all               # Both
 
 ## Changelog
 
+### v1.4.0 — Pre/Post Model Hooks + Migration Notes (2026-03-03)
+- Added Pattern 21: Pre/Post Model Hooks for `create_react_agent`
+- `pre_model_hook` for message trimming/context management
+- `post_model_hook` for guardrails and validation
+- Documented `create_react_agent` → `create_agent` migration (LangGraph v1.0)
+- Full `create_react_agent` signature in api-reference.md
+
 ### v1.3.0 — Fluent Builder Syntax (2026-03-03)
 - Added Pattern 20: Chained/Fluent Builder — `StateGraph` methods return `self` for one-liner graphs
 - Added fluent syntax note to api-reference.md and guideline #19 to SKILL.md

@@ -28,7 +28,12 @@ from langgraph.cache.memory import InMemoryCache
 
 ### Prebuilt Components
 ```python
+# LangGraph v1.0+ (recommended)
+from langchain.agents import create_agent  # new location
+
+# Legacy (deprecated, still works — will be removed in v2.0)
 from langgraph.prebuilt import create_react_agent
+
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.prebuilt import InjectedState, InjectedStore
 ```
@@ -456,6 +461,29 @@ async with AsyncMongoDBSaver.from_conn_string(DB_URI) as checkpointer:
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
     graph = builder.compile(checkpointer=checkpointer)
+```
+
+---
+
+## create_react_agent — Full Signature
+
+```python
+from langgraph.prebuilt import create_react_agent
+
+agent = create_react_agent(
+    model,                        # LLM (ChatOpenAI, ChatAnthropic, etc.)
+    tools,                        # list of tools or ToolNode
+    prompt=None,                  # SystemMessage, str, or callable
+    response_format=None,         # Pydantic model for structured output
+    pre_model_hook=None,          # callable(state) -> {"messages": [...]} or {"llm_input_messages": [...]}
+    post_model_hook=None,         # callable(state) -> {"messages": [...]}
+    checkpointer=None,            # MemorySaver, PostgresSaver, etc.
+    store=None,                   # InMemoryStore for long-term memory
+    interrupt_before=None,        # list of node names to pause before
+    interrupt_after=None,         # list of node names to pause after
+    version="v2",                 # agent version
+    name=None,                    # optional graph name
+)
 ```
 
 ---
