@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.6.0] - 2026-03-03
+
+### Added
+- Pattern 24: Interrupt Safety Rules
+  - Side effects before `interrupt()` must be idempotent (node re-runs on resume)
+  - Place non-idempotent operations after `interrupt()` for single execution
+  - Payloads must be JSON-serializable (dict, str, list, int, bool)
+  - Resume requires same `thread_id` as the interrupted invocation
+  - Summary table of do's and don'ts
+- Pattern 25: Graph API vs Functional API Decision Guide
+  - When to use Graph API (complex routing, visualization, team collaboration)
+  - When to use Functional API (prototyping, linear workflows, Python control flow)
+  - Comparison table (control flow, state, visualization, checkpointing, boilerplate)
+  - Combining both APIs in one application
+- Interrupt Safety Notes section in api-reference.md
+- Decision guide rows: rapid prototyping → Functional API, complex routing → Graph API
+- Anti-pattern #9: Don't put non-idempotent side effects before interrupt()
+- Implementation Guidelines #24-25 (interrupt idempotency, API selection)
+- Isolated subagent test: 7/7 pytest tests passed (interrupt safety, functional API, graph API, visualization)
+
 ## [1.5.0] - 2026-03-03
 
 ### Added

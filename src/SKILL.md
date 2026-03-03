@@ -46,6 +46,8 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 | Custom logic before/after LLM calls | `@before_model` / `@after_model` middleware |
 | Prevent infinite loops / control depth | `recursion_limit` in config + `RemainingSteps` |
 | Visualize graph structure | `graph.get_graph().draw_mermaid()` / `draw_mermaid_png()` |
+| Rapid prototyping / linear workflows | Functional API (`@entrypoint` + `@task`) |
+| Complex routing + visualization needed | Graph API (`StateGraph` + edges) |
 | Production deployment | LangGraph Platform (Cloud/Self-hosted) |
 
 ## Required Dependencies
@@ -386,3 +388,5 @@ When building a LangGraph application:
 21. **Use post_model_hook for guardrails** — validate LLM output, apply content filters, or add HITL approval after each model call
 22. **Prefer `create_agent` for new projects** — `from langchain.agents import create_agent` with middleware replaces `create_react_agent`; use `system_prompt` instead of `prompt`
 23. **Set `recursion_limit` for complex agents** — default is 25; use `RemainingSteps` in state for proactive limit checking; always provide a graceful exit when near the limit
+24. **Make side effects before `interrupt()` idempotent** — node re-runs entirely on resume; place non-idempotent operations after `interrupt()`, or use idempotent patterns (upsert, PUT)
+25. **Choose Graph API for complex routing, Functional API for prototyping** — Graph API offers visualization and explicit structure; Functional API uses pure Python control flow with less boilerplate

@@ -147,6 +147,12 @@ make all               # Both
 
 ## Changelog
 
+### v1.6.0 — Interrupt Safety + Graph vs Functional API (2026-03-03)
+- Added Pattern 24: Interrupt Safety Rules (idempotency, side effect placement, JSON payloads)
+- Added Pattern 25: Graph API vs Functional API Decision Guide with comparison table
+- Interrupt safety notes in api-reference.md, anti-pattern #9
+- Guidelines #24-25 for interrupt safety and API selection
+
 ### v1.5.0 — create_agent + Middleware + Recursion Limits (2026-03-03)
 - Added Pattern 22: `create_agent` with Middleware (`SummarizationMiddleware`, `@before_model`, `@after_model`)
 - Added Pattern 23: Recursion Limits + `RemainingSteps` for proactive loop control

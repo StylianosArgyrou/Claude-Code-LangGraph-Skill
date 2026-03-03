@@ -1504,6 +1504,192 @@ with open("graph.png", "wb") as f:
 
 ---
 
+## Pattern 24: Interrupt Safety Rules
+
+When a node calls `interrupt()`, LangGraph saves state and pauses execution. On resume with `Command(resume=...)`, **the entire node re-runs from the beginning**. This has critical implications for side effects.
+
+### Rule 1: Side Effects Before Interrupt Must Be Idempotent
+
+```python
+from langgraph.types import interrupt
+
+def approval_node(state):
+    # ✅ GOOD: upsert is idempotent — safe to re-run
+    db.upsert_user(user_id=state["user_id"], status="pending")
+
+    approved = interrupt({"question": "Approve this change?"})
+    return {"approved": approved}
+
+def bad_approval_node(state):
+    # ❌ BAD: create is NOT idempotent — creates duplicates on re-run
+    audit_id = db.create_audit_log({
+        "user_id": state["user_id"],
+        "action": "pending",
+    })
+
+    approved = interrupt({"question": "Approve?"})
+    return {"approved": approved, "audit_id": audit_id}
+```
+
+### Rule 2: Place Side Effects After Interrupt When Possible
+
+```python
+from langgraph.types import interrupt
+
+def safe_node(state):
+    # ✅ BEST: side effects AFTER interrupt — runs exactly once
+    approved = interrupt({"question": "Approve this action?"})
+
+    if approved:
+        db.create_audit_log(user_id=state["user_id"], action="approved")
+        send_notification(state["user_id"], "Action approved")
+
+    return {"approved": approved}
+```
+
+### Rule 3: Interrupt Payloads Must Be JSON-Serializable
+
+```python
+from langgraph.types import interrupt
+
+def node_with_interrupt(state):
+    # ✅ GOOD: dict with strings, numbers, lists, bools
+    response = interrupt({
+        "question": "Review this draft?",
+        "draft": state["draft_text"],
+        "options": ["approve", "reject", "edit"],
+    })
+
+    # ❌ BAD: non-serializable objects (datetime, custom classes)
+    # response = interrupt({"timestamp": datetime.now()})  # Will fail!
+
+    return {"response": response}
+```
+
+### Rule 4: Resume Requires Same Thread ID
+
+```python
+from langgraph.types import Command
+from langgraph.checkpoint.memory import MemorySaver
+
+graph = builder.compile(checkpointer=MemorySaver())
+config = {"configurable": {"thread_id": "thread-1"}}
+
+# First invocation — hits interrupt and pauses
+result = graph.invoke({"messages": [("user", "do something risky")]}, config)
+
+# Resume — MUST use same thread_id
+result = graph.invoke(Command(resume="approved"), config)  # same config!
+```
+
+### Summary of Interrupt Safety Rules
+
+| Rule | Do | Don't |
+|------|-----|-------|
+| Before interrupt | Use idempotent ops (upsert, PUT) | Use non-idempotent ops (create, POST, INSERT) |
+| Side effects | Place after `interrupt()` when possible | Place before `interrupt()` unless idempotent |
+| Payloads | JSON-serializable (dict, str, list, int, bool) | datetime, custom objects, file handles |
+| Resume | Same `thread_id` as interrupt | Different thread_id |
+
+---
+
+## Pattern 25: Graph API vs Functional API — Decision Guide
+
+LangGraph offers two APIs that share the same runtime. Choose based on your needs.
+
+### When to Use Graph API (StateGraph)
+
+```python
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+    step: str
+
+builder = StateGraph(State)
+builder.add_node("analyze", analyze_node)
+builder.add_node("generate", generate_node)
+builder.add_conditional_edges("analyze", route_fn)
+builder.add_edge("generate", END)
+graph = builder.compile(checkpointer=MemorySaver())
+```
+
+**Best for:**
+- Complex workflows with conditional routing and cycles
+- Multi-agent systems (supervisor, handoff patterns)
+- Team collaboration (graph structure is self-documenting)
+- Visualization needed (`draw_mermaid()`, `draw_mermaid_png()`)
+- Shared state across many nodes (state reducers manage concurrent writes)
+
+### When to Use Functional API (@entrypoint + @task)
+
+```python
+from langgraph.func import entrypoint, task
+from langgraph.checkpoint.memory import InMemorySaver
+
+@task
+def step_a(data: str) -> str:
+    return data.upper()
+
+@task
+def step_b(data: str) -> str:
+    return f"Result: {data}"
+
+@entrypoint(checkpointer=InMemorySaver())
+def workflow(input_data: str) -> str:
+    a = step_a(input_data).result()
+    return step_b(a).result()
+```
+
+**Best for:**
+- Rapid prototyping (no state schema needed)
+- Linear workflows (A → B → C)
+- Function-scoped state (each task manages its own data)
+- Python-native control flow (if/else, loops, try/except)
+- Less code when graph structure is simple
+
+### Comparison Table
+
+| Feature | Graph API | Functional API |
+|---------|-----------|----------------|
+| **Control flow** | Explicit edges + routing functions | Python if/else, loops, try/except |
+| **State management** | Shared TypedDict with reducers | Function-scoped, no shared state |
+| **Visualization** | `draw_mermaid()` / `draw_mermaid_png()` | Not available (dynamic graph) |
+| **Checkpointing** | New checkpoint per superstep | Task results saved to entrypoint checkpoint |
+| **Boilerplate** | More (state, nodes, edges, compile) | Less (decorators + function calls) |
+| **Debugging** | Visual graph + state inspection | Standard Python debugging |
+| **Team readability** | Self-documenting graph structure | Familiar Python functions |
+| **Complex routing** | Conditional edges, Send, sub-graphs | Python conditionals |
+
+### Combining Both APIs
+
+You can use both in the same application — a Graph API for complex coordination and Functional API for simple data processing.
+
+```python
+from langgraph.graph import StateGraph
+from langgraph.func import entrypoint, task
+
+# Simple processing — Functional API
+@task
+def clean_data(raw: dict) -> dict:
+    return {k: v.strip() for k, v in raw.items()}
+
+@entrypoint()
+def data_processor(raw_data: dict) -> dict:
+    return clean_data(raw_data).result()
+
+# Complex coordination — Graph API
+def orchestrator_node(state):
+    processed = data_processor.invoke(state["raw_data"])
+    return {"processed_data": processed}
+
+builder = StateGraph(OrchestratorState)
+builder.add_node("orchestrator", orchestrator_node)
+# ... add more nodes, edges, conditional routing
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references
@@ -1514,3 +1700,4 @@ with open("graph.png", "wb") as f:
 6. **Don't put blocking I/O in nodes without async** — use `astream`/`ainvoke` for async
 7. **Don't overwrite list state without reducers** — use `Annotated[list, operator.add]`
 8. **Don't nest too deeply** — sub-graphs of sub-graphs get hard to debug
+9. **Don't put non-idempotent side effects before interrupt()** — node re-runs from beginning on resume

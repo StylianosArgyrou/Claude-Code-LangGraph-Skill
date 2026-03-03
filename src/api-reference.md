@@ -702,6 +702,17 @@ builder = StateGraph(State, config_schema=Configuration)
 
 ---
 
+## Interrupt Safety Notes
+
+When using `interrupt()` in nodes:
+- **Node re-runs entirely on resume** — all code before `interrupt()` executes again
+- **Side effects before interrupt must be idempotent** — use upsert/PUT, not create/POST
+- **Place side effects after interrupt when possible** — runs exactly once
+- **Payloads must be JSON-serializable** — dict, str, list, int, bool only
+- **Resume requires same thread_id** — `Command(resume=value)` with original config
+
+---
+
 ## Graph Visualization
 
 ```python
