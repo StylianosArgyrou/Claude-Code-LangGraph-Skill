@@ -19,10 +19,10 @@ $(DIST_DIR):
 package: $(DIST_DIR) ## Create zip package for ~/.claude/skills/ installation
 	@echo "Building $(SKILL_NAME) v$(VERSION) zip package..."
 	@rm -rf $(DIST_DIR)/$(SKILL_NAME)
-	@mkdir -p $(DIST_DIR)/$(SKILL_NAME)/references
 	@mkdir -p $(DIST_DIR)/$(SKILL_NAME)/examples
 	@cp $(SRC_DIR)/SKILL.md $(DIST_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(SRC_DIR)/references/*.md $(DIST_DIR)/$(SKILL_NAME)/references/
+	@cp $(SRC_DIR)/api-reference.md $(DIST_DIR)/$(SKILL_NAME)/api-reference.md
+	@cp $(SRC_DIR)/patterns.md $(DIST_DIR)/$(SKILL_NAME)/patterns.md
 	@cp $(SRC_DIR)/examples/*.md $(DIST_DIR)/$(SKILL_NAME)/examples/
 	@cd $(DIST_DIR) && zip -r $(SKILL_NAME)-v$(VERSION).zip $(SKILL_NAME)/
 	@rm -rf $(DIST_DIR)/$(SKILL_NAME)
@@ -31,10 +31,10 @@ package: $(DIST_DIR) ## Create zip package for ~/.claude/skills/ installation
 package-tarball: $(DIST_DIR) ## Create tar.gz package
 	@echo "Building $(SKILL_NAME) v$(VERSION) tarball..."
 	@rm -rf $(DIST_DIR)/$(SKILL_NAME)
-	@mkdir -p $(DIST_DIR)/$(SKILL_NAME)/references
 	@mkdir -p $(DIST_DIR)/$(SKILL_NAME)/examples
 	@cp $(SRC_DIR)/SKILL.md $(DIST_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(SRC_DIR)/references/*.md $(DIST_DIR)/$(SKILL_NAME)/references/
+	@cp $(SRC_DIR)/api-reference.md $(DIST_DIR)/$(SKILL_NAME)/api-reference.md
+	@cp $(SRC_DIR)/patterns.md $(DIST_DIR)/$(SKILL_NAME)/patterns.md
 	@cp $(SRC_DIR)/examples/*.md $(DIST_DIR)/$(SKILL_NAME)/examples/
 	@cd $(DIST_DIR) && tar -czf $(SKILL_NAME)-v$(VERSION).tar.gz $(SKILL_NAME)/
 	@rm -rf $(DIST_DIR)/$(SKILL_NAME)
@@ -48,11 +48,11 @@ package-combined: $(DIST_DIR) ## Create single-file combined SKILL.md
 	@echo "" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "---" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
-	@cat $(SRC_DIR)/references/api-reference.md >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
+	@cat $(SRC_DIR)/api-reference.md >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "---" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
-	@cat $(SRC_DIR)/references/patterns.md >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
+	@cat $(SRC_DIR)/patterns.md >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "---" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
 	@echo "" >> $(DIST_DIR)/$(SKILL_NAME)-v$(VERSION)-combined.md
@@ -61,10 +61,11 @@ package-combined: $(DIST_DIR) ## Create single-file combined SKILL.md
 
 install: ## Install to ~/.claude/skills/langgraph/
 	@echo "Installing $(SKILL_NAME) v$(VERSION) to ~/.claude/skills/$(SKILL_NAME)/"
-	@mkdir -p ~/.claude/skills/$(SKILL_NAME)/references
+	@rm -rf ~/.claude/skills/$(SKILL_NAME)
 	@mkdir -p ~/.claude/skills/$(SKILL_NAME)/examples
 	@cp $(SRC_DIR)/SKILL.md ~/.claude/skills/$(SKILL_NAME)/SKILL.md
-	@cp $(SRC_DIR)/references/*.md ~/.claude/skills/$(SKILL_NAME)/references/
+	@cp $(SRC_DIR)/api-reference.md ~/.claude/skills/$(SKILL_NAME)/api-reference.md
+	@cp $(SRC_DIR)/patterns.md ~/.claude/skills/$(SKILL_NAME)/patterns.md
 	@cp $(SRC_DIR)/examples/*.md ~/.claude/skills/$(SKILL_NAME)/examples/
 	@echo "Installed to ~/.claude/skills/$(SKILL_NAME)/"
 

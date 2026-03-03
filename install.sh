@@ -18,11 +18,13 @@ fi
 
 echo "Installing $SKILL_NAME skill to $SKILL_DIR..."
 
-mkdir -p "$SKILL_DIR/references"
+# Clean previous install (removes stale references/ dir)
+rm -rf "$SKILL_DIR"
 mkdir -p "$SKILL_DIR/examples"
 
 cp "$SRC_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
-cp "$SRC_DIR/references/"*.md "$SKILL_DIR/references/"
+cp "$SRC_DIR/api-reference.md" "$SKILL_DIR/api-reference.md"
+cp "$SRC_DIR/patterns.md" "$SKILL_DIR/patterns.md"
 cp "$SRC_DIR/examples/"*.md "$SKILL_DIR/examples/"
 
 echo "Done. Skill installed to $SKILL_DIR"

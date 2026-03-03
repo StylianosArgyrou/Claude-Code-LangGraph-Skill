@@ -39,9 +39,8 @@ make install
 Copy the `src/` contents to `~/.claude/skills/langgraph/`:
 
 ```bash
-mkdir -p ~/.claude/skills/langgraph/references ~/.claude/skills/langgraph/examples
-cp src/SKILL.md ~/.claude/skills/langgraph/SKILL.md
-cp src/references/*.md ~/.claude/skills/langgraph/references/
+mkdir -p ~/.claude/skills/langgraph/examples
+cp src/SKILL.md src/api-reference.md src/patterns.md ~/.claude/skills/langgraph/
 cp src/examples/*.md ~/.claude/skills/langgraph/examples/
 ```
 
@@ -74,12 +73,11 @@ Or just ask naturally:
 
 ```
 src/
-├── SKILL.md                         # Core skill (architecture guide, quick reference, patterns)
-├── references/
-│   ├── api-reference.md             # Complete import map, StateGraph API, all signatures
-│   └── patterns.md                  # 16 advanced patterns with full code
+├── SKILL.md                     # Core skill (architecture guide, quick reference, patterns)
+├── api-reference.md             # Complete import map, StateGraph API, all signatures
+├── patterns.md                  # 16 advanced patterns with full code
 └── examples/
-    └── complete-examples.md         # 10 production-ready working examples
+    └── complete-examples.md     # 10 production-ready working examples
 ```
 
 ### Patterns Covered
@@ -148,6 +146,11 @@ make all               # Both
 4. GitHub Actions automatically builds and publishes the release with artifacts
 
 ## Changelog
+
+### v0.7.0 — Structure Reconciliation + Polish (2026-03-03)
+- Flattened `src/references/` into `src/` — relative links now match installed layout
+- Updated install.sh, Makefile, README manual install instructions
+- Clean install removes stale files from previous versions
 
 ### v0.6.0 — Testing + Production Migration (2026-03-03)
 - Added Pattern 15: Testing LangGraph Graphs with pytest

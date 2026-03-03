@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.0] - 2026-03-03
+
+### Changed
+- Flattened `src/references/` into `src/` — api-reference.md and patterns.md now live alongside SKILL.md
+- SKILL.md relative links (`api-reference.md`, `patterns.md`, `examples/`) now match installed layout
+- Updated install.sh to clean previous install before copying (removes stale references/ dir)
+- Updated Makefile install/package targets for flat structure
+- Updated README manual install instructions and file tree
+
 ## [0.6.0] - 2026-03-03
 
 ### Added
