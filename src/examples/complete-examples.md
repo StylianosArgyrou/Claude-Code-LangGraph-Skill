@@ -598,6 +598,114 @@ result = graph.invoke(
 
 ---
 
+## Example 10: Test Suite Template
+
+A pytest test suite template for testing LangGraph graphs.
+Tests graph structure, node logic, routing, and checkpointer integration.
+
+```python
+"""tests/test_agent.py — pytest test suite for a LangGraph agent."""
+import pytest
+from unittest.mock import MagicMock
+from typing import Literal
+from typing_extensions import TypedDict
+from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
+
+
+# ── Graph under test ──────────────────────────────────────────────
+
+class TaskState(TypedDict):
+    task: str
+    category: str
+    result: str
+
+def categorize(state: TaskState):
+    task = state["task"].lower()
+    if "bug" in task or "error" in task:
+        return {"category": "fix"}
+    return {"category": "feature"}
+
+def route_category(state: TaskState) -> Literal["fix_handler", "feature_handler"]:
+    return "fix_handler" if state["category"] == "fix" else "feature_handler"
+
+def fix_handler(state: TaskState):
+    return {"result": f"Fixing: {state['task']}"}
+
+def feature_handler(state: TaskState):
+    return {"result": f"Building: {state['task']}"}
+
+def build_task_graph(checkpointer=None):
+    builder = StateGraph(TaskState)
+    builder.add_node("categorize", categorize)
+    builder.add_node("fix_handler", fix_handler)
+    builder.add_node("feature_handler", feature_handler)
+    builder.add_edge(START, "categorize")
+    builder.add_conditional_edges("categorize", route_category)
+    builder.add_edge("fix_handler", END)
+    builder.add_edge("feature_handler", END)
+    return builder.compile(checkpointer=checkpointer)
+
+
+# ── Tests ─────────────────────────────────────────────────────────
+
+class TestTaskGraph:
+    def test_routes_bug_to_fix(self):
+        graph = build_task_graph()
+        result = graph.invoke({"task": "Fix bug in login", "category": "", "result": ""})
+        assert result["category"] == "fix"
+        assert "Fixing:" in result["result"]
+
+    def test_routes_feature_to_feature(self):
+        graph = build_task_graph()
+        result = graph.invoke({"task": "Add dark mode", "category": "", "result": ""})
+        assert result["category"] == "feature"
+        assert "Building:" in result["result"]
+
+    def test_error_keyword_routes_to_fix(self):
+        graph = build_task_graph()
+        result = graph.invoke({"task": "Error in payment", "category": "", "result": ""})
+        assert result["category"] == "fix"
+
+    def test_with_checkpointer(self):
+        graph = build_task_graph(checkpointer=MemorySaver())
+        config = {"configurable": {"thread_id": "test-1"}}
+        result = graph.invoke(
+            {"task": "Add search feature", "category": "", "result": ""},
+            config
+        )
+        assert result["result"] == "Building: Add search feature"
+
+        # Verify state was saved
+        state = graph.get_state(config)
+        assert state.values["result"] == "Building: Add search feature"
+
+
+class TestChatGraph:
+    def test_with_mock_llm(self):
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = AIMessage(content="Mocked response")
+
+        def chat(state: MessagesState):
+            return {"messages": [mock_llm.invoke(state["messages"])]}
+
+        builder = StateGraph(MessagesState)
+        builder.add_node("chat", chat)
+        builder.add_edge(START, "chat")
+        builder.add_edge("chat", END)
+        graph = builder.compile()
+
+        result = graph.invoke({"messages": [HumanMessage("Hello")]})
+        assert result["messages"][-1].content == "Mocked response"
+        mock_llm.invoke.assert_called_once()
+
+
+# Run with: pytest tests/test_agent.py -v
+```
+
+---
+
 ## Project Scaffolding Template
 
 When creating a new LangGraph project from scratch:

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0] - 2026-03-03
+
+### Added
+- Pattern 15: Testing LangGraph Graphs with pytest — basic tests, mocked LLM, routing tests
+- Pattern 16: Production Migration (MemorySaver → PostgresSaver/RedisSaver) with migration checklist
+- Example 10: Test Suite Template — complete pytest test file for graph testing
+- Implementation Guidelines #14-15 (pytest testing, factory functions for graphs)
+
 ## [0.5.0] - 2026-03-03
 
 ### Added

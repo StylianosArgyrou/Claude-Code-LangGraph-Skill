@@ -303,3 +303,5 @@ When building a LangGraph application:
 11. **Use RetryPolicy for external API calls** — handles transient failures with exponential backoff
 12. **Consider Functional API for simple workflows** — `@entrypoint` + `@task` avoids StateGraph boilerplate
 13. **Use async nodes for web servers and high concurrency** — `async def` nodes with `ainvoke`/`astream` for non-blocking I/O
+14. **Test graphs with pytest** — invoke with known inputs, assert on output state; mock LLMs for fast unit tests
+15. **Extract graph construction into factory functions** — `def build_graph(checkpointer=None)` makes testing and migration easy

@@ -806,6 +806,183 @@ asyncio.run(main())
 
 ---
 
+## Pattern 15: Testing LangGraph Graphs with pytest
+
+Test graphs by invoking them with known inputs and asserting on the output state.
+Mock LLM calls for fast, deterministic unit tests.
+
+### Basic Graph Test
+
+```python
+import pytest
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    input: str
+    output: str
+
+def process(state: State):
+    return {"output": state["input"].upper()}
+
+def build_graph():
+    builder = StateGraph(State)
+    builder.add_node("process", process)
+    builder.add_edge(START, "process")
+    builder.add_edge("process", END)
+    return builder.compile()
+
+def test_basic_graph():
+    graph = build_graph()
+    result = graph.invoke({"input": "hello", "output": ""})
+    assert result["output"] == "HELLO"
+
+def test_empty_input():
+    graph = build_graph()
+    result = graph.invoke({"input": "", "output": ""})
+    assert result["output"] == ""
+```
+
+### Testing with Mocked LLM
+
+```python
+import pytest
+from unittest.mock import MagicMock, patch
+from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+
+def build_chat_graph(llm):
+    def chat(state: MessagesState):
+        response = llm.invoke(state["messages"])
+        return {"messages": [response]}
+
+    builder = StateGraph(MessagesState)
+    builder.add_node("chat", chat)
+    builder.add_edge(START, "chat")
+    builder.add_edge("chat", END)
+    return builder.compile()
+
+def test_chat_with_mock():
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = AIMessage(content="Hello! How can I help?")
+
+    graph = build_chat_graph(mock_llm)
+    result = graph.invoke({"messages": [HumanMessage("Hi")]})
+
+    assert len(result["messages"]) == 2
+    assert result["messages"][-1].content == "Hello! How can I help?"
+    mock_llm.invoke.assert_called_once()
+```
+
+### Testing Conditional Routing
+
+```python
+import pytest
+from typing import Literal
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    value: int
+    result: str
+
+def check(state: State):
+    return state
+
+def route(state: State) -> Literal["high", "low"]:
+    return "high" if state["value"] > 50 else "low"
+
+def high_handler(state: State):
+    return {"result": "high_value"}
+
+def low_handler(state: State):
+    return {"result": "low_value"}
+
+def build_router():
+    builder = StateGraph(State)
+    builder.add_node("check", check)
+    builder.add_node("high", high_handler)
+    builder.add_node("low", low_handler)
+    builder.add_edge(START, "check")
+    builder.add_conditional_edges("check", route)
+    builder.add_edge("high", END)
+    builder.add_edge("low", END)
+    return builder.compile()
+
+def test_routes_high():
+    graph = build_router()
+    result = graph.invoke({"value": 75, "result": ""})
+    assert result["result"] == "high_value"
+
+def test_routes_low():
+    graph = build_router()
+    result = graph.invoke({"value": 25, "result": ""})
+    assert result["result"] == "low_value"
+```
+
+---
+
+## Pattern 16: Production Migration (MemorySaver to PostgresSaver)
+
+Migrate from development checkpointer to production without changing graph logic.
+
+### Development Setup
+
+```python
+from langgraph.checkpoint.memory import MemorySaver
+
+# Development — in-memory, no persistence across restarts
+graph = builder.compile(checkpointer=MemorySaver())
+```
+
+### Production Setup (PostgreSQL)
+
+```python
+import os
+from langgraph.checkpoint.postgres import PostgresSaver
+
+DB_URI = os.environ["DATABASE_URL"]  # e.g. postgresql://user:pass@host:5432/db
+
+# Sync version
+with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
+    graph = builder.compile(checkpointer=checkpointer)
+    # Use graph within this context...
+```
+
+### Production Setup (Redis)
+
+```python
+import os
+from langgraph.checkpoint.redis import RedisSaver
+
+REDIS_URI = os.environ["REDIS_URL"]  # e.g. redis://localhost:6379
+
+with RedisSaver.from_conn_string(REDIS_URI) as checkpointer:
+    graph = builder.compile(checkpointer=checkpointer)
+```
+
+### Migration Checklist
+
+```python
+# 1. Install production checkpointer
+#    pip install langgraph-checkpoint-postgres
+#    OR pip install langgraph-checkpoint-redis
+
+# 2. Set environment variable
+#    DATABASE_URL=postgresql://user:pass@host:5432/db
+
+# 3. Replace MemorySaver() with production checkpointer:
+#    BEFORE: graph = builder.compile(checkpointer=MemorySaver())
+#    AFTER:  with PostgresSaver.from_conn_string(DB_URI) as cp:
+#                graph = builder.compile(checkpointer=cp)
+
+# 4. Graph definition, nodes, edges — NOTHING changes
+# 5. Invocation code — NOTHING changes
+# 6. Config format — NOTHING changes: {"configurable": {"thread_id": "..."}}
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references
