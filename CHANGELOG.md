@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.0] - 2026-03-03
+
+### Added
+- Pattern 19: Custom Streaming with `get_stream_writer()` — emit progress events from inside any node
+- `get_stream_writer`, `get_config`, `get_store` imports in api-reference.md (Config Utilities section)
+- `NotRequired` state field pattern in api-reference.md for optional TypedDict fields
+- Custom streaming quick reference section in SKILL.md
+- Implementation Guideline #18 (prefer `get_stream_writer()` for custom streaming)
+- Note on Python < 3.11 async limitation with `StreamWriter` parameter fallback
+- Isolated subagent test: 5/5 pytest tests passed (streaming + NotRequired)
+
 ## [1.1.0] - 2026-03-03
 
 ### Added

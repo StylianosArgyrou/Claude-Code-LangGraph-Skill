@@ -261,6 +261,20 @@ graph = builder.compile(cache=InMemoryCache())
 builder.add_node("synthesize", func, defer=True)
 ```
 
+### Custom Streaming with get_stream_writer
+```python
+from langgraph.config import get_stream_writer
+
+def my_node(state: State):
+    writer = get_stream_writer()
+    writer({"progress": "50%"})
+    return {"result": "done"}
+
+# Consume with stream_mode="custom" or combine modes
+for mode, chunk in graph.stream(input, stream_mode=["custom", "updates"]):
+    print(mode, chunk)
+```
+
 ### Streaming
 ```python
 # Stream state updates
@@ -323,3 +337,4 @@ When building a LangGraph application:
 15. **Extract graph construction into factory functions** — `def build_graph(checkpointer=None)` makes testing and migration easy
 16. **Use CachePolicy for expensive deterministic nodes** — avoids redundant LLM calls or API lookups with `CachePolicy(ttl=seconds)`
 17. **Use defer=True for fan-in nodes** — ensures node waits for all upstream branches to complete before executing
+18. **Prefer `get_stream_writer()` for custom streaming** — call inside any node to emit progress events; consume with `stream_mode="custom"`

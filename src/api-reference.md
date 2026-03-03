@@ -85,6 +85,13 @@ from langchain_core.tools import tool  # @tool decorator
 from langchain_community.tools.tavily_search import TavilySearchResults
 ```
 
+### Config Utilities
+```python
+from langgraph.config import get_stream_writer  # emit custom events from inside nodes
+from langgraph.config import get_config          # access config from inside nodes
+from langgraph.config import get_store           # access store from inside nodes
+```
+
 ### Configuration
 ```python
 from langchain_core.runnables import RunnableConfig
@@ -264,6 +271,13 @@ graph.update_state(config, {"messages": [response]}, as_node="assistant")
 class State(TypedDict):
     topic: str
     result: str
+
+# Optional fields (not required on input)
+from typing_extensions import TypedDict, NotRequired
+
+class State(TypedDict):
+    query: str
+    result: NotRequired[str]  # optional — doesn't need to be passed on invoke
 ```
 
 ### With Reducers

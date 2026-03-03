@@ -1087,6 +1087,70 @@ assert len(result["analyses"]) == 3
 
 ---
 
+## Pattern 19: Custom Streaming with get_stream_writer
+
+Emit custom progress events from inside any node using `get_stream_writer()`.
+Consume with `stream_mode="custom"` or combine with other modes.
+
+```python
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
+from langgraph.config import get_stream_writer
+
+class State(TypedDict):
+    data: str
+    result: str
+
+def step_one(state: State):
+    writer = get_stream_writer()
+    writer({"progress": "Starting processing..."})
+    processed = state["data"].upper()
+    writer({"progress": "Processing complete", "chars": len(processed)})
+    return {"result": processed}
+
+def step_two(state: State):
+    writer = get_stream_writer()
+    writer({"progress": "Finalizing..."})
+    return {"result": f"Final: {state['result']}"}
+
+builder = StateGraph(State)
+builder.add_node("step_one", step_one)
+builder.add_node("step_two", step_two)
+builder.add_edge(START, "step_one")
+builder.add_edge("step_one", "step_two")
+builder.add_edge("step_two", END)
+graph = builder.compile()
+
+# Consume custom events only
+for chunk in graph.stream({"data": "hello", "result": ""}, stream_mode="custom"):
+    print(f"Custom: {chunk}")
+
+# Combine custom events with state updates
+for mode, chunk in graph.stream(
+    {"data": "hello", "result": ""},
+    stream_mode=["custom", "updates"]
+):
+    if mode == "custom":
+        print(f"Progress: {chunk}")
+    else:
+        print(f"State update: {chunk}")
+```
+
+### Note on Python < 3.11
+
+In async code on Python < 3.11, `get_stream_writer()` won't work due to ContextVar limitations.
+Use a `writer` parameter instead:
+
+```python
+from langgraph.config import StreamWriter
+
+async def my_node(state: State, writer: StreamWriter):
+    writer({"progress": "working..."})
+    return {"result": "done"}
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references

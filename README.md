@@ -147,6 +147,12 @@ make all               # Both
 
 ## Changelog
 
+### v1.2.0 — Modern Streaming + NotRequired (2026-03-03)
+- Added Pattern 19: Custom Streaming with `get_stream_writer()`
+- Added `get_stream_writer`, `get_config`, `get_store` config utilities to api-reference.md
+- Added `NotRequired` state field pattern for optional TypedDict fields
+- Updated SKILL.md with custom streaming quick reference and guideline #18
+
 ### v1.1.0 — Node Caching + Deferred Nodes (2026-03-03)
 - Added Pattern 17: Node Caching with `CachePolicy` + `InMemoryCache`
 - Added Pattern 18: Deferred Nodes with `defer=True` for fan-in barriers
