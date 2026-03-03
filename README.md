@@ -147,6 +147,10 @@ make all               # Both
 
 ## Changelog
 
+### v1.6.1 — Pattern Showcase Demo (2026-03-03)
+- Added Example 11: Multi-Agent Research System exercising 11 patterns in one app
+- Demo prompt validated: fresh subagent generates and runs full system from `/langgraph` prompt
+
 ### v1.6.0 — Interrupt Safety + Graph vs Functional API (2026-03-03)
 - Added Pattern 24: Interrupt Safety Rules (idempotency, side effect placement, JSON payloads)
 - Added Pattern 25: Graph API vs Functional API Decision Guide with comparison table

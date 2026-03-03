@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1] - 2026-03-03
+
+### Added
+- Example 11: Pattern Showcase — Multi-Agent Research System
+  - Demo prompt exercising 11 patterns: supervisor, ReAct, CachePolicy, deferred nodes, get_stream_writer, HITL, memory store, RetryPolicy, RemainingSteps, checkpointer, streaming
+  - Isolated subagent successfully generated and ran the full system from the demo prompt
+- Updated requirements.txt template to `langgraph>=1.0.0`
+
 ## [1.6.0] - 2026-03-03
 
 ### Added

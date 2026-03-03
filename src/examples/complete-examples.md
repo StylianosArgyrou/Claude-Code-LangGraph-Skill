@@ -729,7 +729,8 @@ my-langgraph-project/
 
 ### requirements.txt template
 ```
-langgraph>=0.2.0
+langgraph>=1.0.0
+langchain>=1.0.0
 langchain-core>=0.3.0
 langchain-openai>=0.2.0
 langgraph-checkpoint>=2.0.0
@@ -740,3 +741,49 @@ langgraph-checkpoint>=2.0.0
 # tavily-python
 # langsmith
 ```
+
+---
+
+## Example 11: Pattern Showcase — Multi-Agent Research System
+
+This example demonstrates many LangGraph patterns working together in a single application.
+Use this as a `/langgraph` prompt to generate it from scratch:
+
+```
+/langgraph Build a multi-agent research system with these requirements:
+
+Architecture: Supervisor agent that routes to 3 specialized sub-agents:
+1. "researcher" — searches for information (uses tools with RetryPolicy)
+2. "analyzer" — analyzes and scores findings (expensive, use CachePolicy)
+3. "writer" — synthesizes all findings into a report (deferred node — waits for all branches)
+
+Features to include:
+- Supervisor uses a StateGraph with conditional routing to sub-agents
+- researcher sub-agent uses create_react_agent with search tools
+- analyzer node has CachePolicy(ttl=300) to skip redundant analysis
+- writer node uses defer=True to wait for all research branches
+- Human-in-the-loop: interrupt() before the writer produces the final report for approval
+- Memory store with InMemoryStore for user research profiles (namespace: ("research", user_id))
+- get_stream_writer in the researcher node to emit progress events
+- RemainingSteps in state for proactive recursion limit checking
+- MemorySaver checkpointer for conversation persistence
+- Stream with stream_mode=["updates", "custom"] for both state changes and progress
+
+Save to research_system.py. Include a __main__ block that runs the system with a test query.
+```
+
+### What This Prompt Exercises
+
+| Feature | Skill Pattern |
+|---------|--------------|
+| Supervisor routing | Pattern 9: Supervisor Multi-Agent |
+| Tool-calling sub-agent | Pattern 1: ReAct Agent |
+| Node caching | Pattern 17: CachePolicy |
+| Fan-in barrier | Pattern 18: Deferred Nodes |
+| Custom streaming | Pattern 19: get_stream_writer |
+| HITL approval | Pattern 5: Human-in-the-Loop |
+| Memory profiles | Pattern 8: Memory Agent |
+| Error resilience | Pattern 13: RetryPolicy |
+| Recursion safety | Pattern 23: RemainingSteps |
+| Persistence | Checkpointer (MemorySaver) |
+| create_agent | Pattern 22: create_agent with Middleware |
