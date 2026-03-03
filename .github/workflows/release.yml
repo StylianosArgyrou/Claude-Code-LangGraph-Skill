@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from VERSION file
+        id: version
+        run: echo "version=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Build packages
+        run: make all
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        with:
+          name: "v${{ steps.version.outputs.version }}"
+          generate_release_notes: true
+          files: |
+            dist/langgraph-v${{ steps.version.outputs.version }}.zip
+            dist/langgraph-v${{ steps.version.outputs.version }}.tar.gz
+            dist/langgraph-v${{ steps.version.outputs.version }}-combined.md
+          draft: false
+          prerelease: false
