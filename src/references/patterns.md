@@ -681,6 +681,131 @@ RetryPolicy(
 
 ---
 
+## Pattern 14: Async Graph Execution
+
+Use `async def` nodes with `ainvoke` and `astream` for non-blocking I/O.
+Essential for web servers, high-concurrency applications, and async frameworks like FastAPI.
+
+### Basic Async Graph
+
+```python
+import asyncio
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
+
+llm = ChatOpenAI(model="gpt-4o")
+
+async def research_node(state: MessagesState):
+    """Async node — use await for non-blocking LLM calls."""
+    response = await llm.ainvoke([
+        SystemMessage(content="You are a research assistant."),
+        *state["messages"]
+    ])
+    return {"messages": [response]}
+
+async def summarize_node(state: MessagesState):
+    response = await llm.ainvoke([
+        SystemMessage(content="Summarize the conversation so far in one sentence."),
+        *state["messages"]
+    ])
+    return {"messages": [response]}
+
+builder = StateGraph(MessagesState)
+builder.add_node("research", research_node)
+builder.add_node("summarize", summarize_node)
+builder.add_edge(START, "research")
+builder.add_edge("research", "summarize")
+builder.add_edge("summarize", END)
+
+graph = builder.compile(checkpointer=MemorySaver())
+
+# Async invocation
+async def main():
+    config = {"configurable": {"thread_id": "1"}}
+    result = await graph.ainvoke(
+        {"messages": [("user", "Research quantum computing")]},
+        config
+    )
+    result["messages"][-1].pretty_print()
+
+asyncio.run(main())
+```
+
+### Async Streaming
+
+```python
+import asyncio
+from langchain_openai import ChatOpenAI
+from langgraph.graph import MessagesState, StateGraph, START, END
+
+llm = ChatOpenAI(model="gpt-4o")
+
+async def chat_node(state: MessagesState):
+    response = await llm.ainvoke(state["messages"])
+    return {"messages": [response]}
+
+builder = StateGraph(MessagesState)
+builder.add_node("chat", chat_node)
+builder.add_edge(START, "chat")
+builder.add_edge("chat", END)
+graph = builder.compile()
+
+async def main():
+    # Stream full state after each node
+    async for chunk in graph.astream(
+        {"messages": [("user", "Explain async programming")]},
+        stream_mode="values"
+    ):
+        chunk["messages"][-1].pretty_print()
+
+    # Stream LLM tokens as they arrive
+    async for chunk in graph.astream(
+        {"messages": [("user", "Write a haiku")]},
+        stream_mode="messages"
+    ):
+        msg, metadata = chunk
+        print(msg.content, end="", flush=True)
+
+asyncio.run(main())
+```
+
+### Async with Production Checkpointer (Redis)
+
+```python
+# pip install langgraph-checkpoint-redis
+import asyncio
+from langchain_openai import ChatOpenAI
+from langgraph.graph import MessagesState, StateGraph, START, END
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+
+llm = ChatOpenAI(model="gpt-4o")
+
+async def chat_node(state: MessagesState):
+    response = await llm.ainvoke(state["messages"])
+    return {"messages": [response]}
+
+builder = StateGraph(MessagesState)
+builder.add_node("chat", chat_node)
+builder.add_edge(START, "chat")
+builder.add_edge("chat", END)
+
+async def main():
+    async with AsyncRedisSaver.from_conn_string("redis://localhost:6379") as checkpointer:
+        graph = builder.compile(checkpointer=checkpointer)
+        config = {"configurable": {"thread_id": "1"}}
+        result = await graph.ainvoke(
+            {"messages": [("user", "Hello!")]},
+            config
+        )
+        result["messages"][-1].pretty_print()
+
+asyncio.run(main())
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references

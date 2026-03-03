@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0] - 2026-03-03
+
+### Added
+- Pattern 14: Async Graph Execution — `async def` nodes, `ainvoke`, `astream`, async streaming
+- Redis checkpointer imports (`RedisSaver`, `AsyncRedisSaver`) in api-reference.md
+- Async API section in api-reference.md (`ainvoke`, `astream`, async nodes, async checkpointers)
+- Async execution row in SKILL.md decision guide table
+- Async quick reference section in SKILL.md
+- `langgraph-checkpoint-redis` to optional dependencies in SKILL.md
+- Implementation Guideline #13 (async nodes for web servers)
+- Async with Redis production checkpointer example in Pattern 14
+
 ## [0.3.0] - 2026-03-03
 
 ### Added

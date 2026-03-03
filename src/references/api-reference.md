@@ -39,6 +39,10 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from langgraph.checkpoint.mongodb.aio import AsyncMongoDBSaver
+
+# Redis (high-performance production)
+from langgraph.checkpoint.redis import RedisSaver
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
 ```
 
 ### Memory Store
@@ -364,6 +368,61 @@ builder.add_node("node", func, retry_policy=RetryPolicy(max_attempts=3))
 # On a Functional API task
 @task(retry_policy=RetryPolicy(retry_on=ValueError))
 def my_task(data): ...
+```
+
+---
+
+## Async API
+
+All sync methods have async counterparts. Use `async def` for nodes and `await` for LLM calls.
+
+### Async Invocation
+```python
+# ainvoke — async version of invoke
+config = {"configurable": {"thread_id": "1"}}
+result = await graph.ainvoke({"messages": [("user", "hello")]}, config)
+```
+
+### Async Streaming
+```python
+# astream — async version of stream
+async for chunk in graph.astream(input, config, stream_mode="values"):
+    chunk["messages"][-1].pretty_print()
+
+# astream with multiple modes
+async for chunk in graph.astream(input, config, stream_mode=["updates", "messages"]):
+    print(chunk)
+```
+
+### Async Node Functions
+```python
+async def my_node(state: State):
+    """Use await for async LLM calls inside async nodes."""
+    response = await llm.ainvoke(state["messages"])
+    return {"messages": [response]}
+```
+
+### Async Checkpointers
+```python
+# Postgres
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
+    graph = builder.compile(checkpointer=checkpointer)
+
+# Redis
+from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+async with AsyncRedisSaver.from_conn_string("redis://localhost:6379") as checkpointer:
+    graph = builder.compile(checkpointer=checkpointer)
+
+# MongoDB
+from langgraph.checkpoint.mongodb.aio import AsyncMongoDBSaver
+async with AsyncMongoDBSaver.from_conn_string(DB_URI) as checkpointer:
+    graph = builder.compile(checkpointer=checkpointer)
+
+# SQLite
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
+    graph = builder.compile(checkpointer=checkpointer)
 ```
 
 ---

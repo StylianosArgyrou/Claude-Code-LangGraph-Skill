@@ -35,6 +35,7 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 | Long-term user memory | `InMemoryStore` or persistent Store + namespaces |
 | Durable workflows without explicit graphs | Functional API (`@entrypoint` + `@task`) |
 | Automatic retry on transient failures | `RetryPolicy` on nodes or tasks |
+| Async / high-concurrency execution | `async def` nodes + `ainvoke` / `astream` |
 | Production deployment | LangGraph Platform (Cloud/Self-hosted) |
 
 ## Required Dependencies
@@ -48,7 +49,8 @@ langgraph-checkpoint  # for persistence
 
 Optional:
 ```
-langgraph-checkpoint-postgres  # production persistence
+langgraph-checkpoint-postgres  # production persistence (PostgreSQL)
+langgraph-checkpoint-redis  # production persistence (Redis)
 trustcall  # structured entity extraction for memory
 tavily-python  # web search tool
 langsmith  # tracing and observability
@@ -224,6 +226,23 @@ from langgraph.types import RetryPolicy
 builder.add_node("node", func, retry_policy=RetryPolicy(max_attempts=3))
 ```
 
+### Async Execution
+```python
+import asyncio
+
+async def my_node(state: MessagesState):
+    response = await llm.ainvoke(state["messages"])
+    return {"messages": [response]}
+
+async def main():
+    config = {"configurable": {"thread_id": "1"}}
+    result = await graph.ainvoke({"messages": [("user", "hi")]}, config)
+    async for chunk in graph.astream(input, config, stream_mode="values"):
+        chunk["messages"][-1].pretty_print()
+
+asyncio.run(main())
+```
+
 ### Streaming
 ```python
 # Stream state updates
@@ -281,3 +300,4 @@ When building a LangGraph application:
 10. **Keep nodes focused** — single responsibility, easy to test and debug
 11. **Use RetryPolicy for external API calls** — handles transient failures with exponential backoff
 12. **Consider Functional API for simple workflows** — `@entrypoint` + `@task` avoids StateGraph boilerplate
+13. **Use async nodes for web servers and high concurrency** — `async def` nodes with `ainvoke`/`astream` for non-blocking I/O

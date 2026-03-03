@@ -77,7 +77,7 @@ src/
 ├── SKILL.md                         # Core skill (architecture guide, quick reference, patterns)
 ├── references/
 │   ├── api-reference.md             # Complete import map, StateGraph API, all signatures
-│   └── patterns.md                  # 13 advanced patterns with full code
+│   └── patterns.md                  # 14 advanced patterns with full code
 └── examples/
     └── complete-examples.md         # 6 production-ready working examples
 ```
@@ -99,6 +99,7 @@ src/
 | Double Texting | Handling concurrent user messages |
 | Functional API | `@entrypoint` + `@task` — durable workflows without graphs |
 | Error Handling | `RetryPolicy` with exponential backoff |
+| Async Execution | `async def` nodes + `ainvoke` / `astream` |
 
 ### API Coverage
 
@@ -142,6 +143,12 @@ make all               # Both
 4. GitHub Actions automatically builds and publishes the release with artifacts
 
 ## Changelog
+
+### v0.4.0 — Async Patterns + New Checkpointers (2026-03-03)
+- Added Pattern 14: Async Graph Execution (`async def` nodes, `ainvoke`, `astream`)
+- Added Redis checkpointer imports (`RedisSaver`, `AsyncRedisSaver`) to api-reference.md
+- Added Async API section to api-reference.md
+- Updated SKILL.md decision guide, quick reference, dependencies, and guidelines
 
 ### v0.3.0 — Functional API + Error Handling (2026-03-03)
 - Added Pattern 12: Functional API (`@entrypoint` + `@task`) for durable workflows without explicit graphs
