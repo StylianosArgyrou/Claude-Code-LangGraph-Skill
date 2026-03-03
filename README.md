@@ -139,6 +139,18 @@ make all               # Both
    ```
 4. GitHub Actions automatically builds and publishes the release with artifacts
 
+## Changelog
+
+### v0.2.0 — Bug Fixes (2026-03-03)
+- Fixed all 10 code bugs across patterns and examples — every code block is now copy-paste runnable
+- Added missing imports, model definitions, and variable initializations to Patterns 2-8
+- Fixed critical `**Command(goto=...)` unpacking bug in Example 3 (replaced with `Command(goto=..., update={...})`)
+
+### v0.1.0 — Initial Release (2026-03-03)
+- Core SKILL.md, API reference, 11 patterns, 6 examples
+
+See [CHANGELOG.md](CHANGELOG.md) for full details.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE)

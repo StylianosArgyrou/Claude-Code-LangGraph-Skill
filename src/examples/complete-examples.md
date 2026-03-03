@@ -104,7 +104,7 @@ def review_outline(state: ContentState):
     })
     if response.get("approved"):
         return Command(goto="write_draft")
-    return {"feedback": response.get("feedback", ""), **Command(goto="create_outline")}
+    return Command(goto="create_outline", update={"feedback": response.get("feedback", "")})
 
 def write_draft(state: ContentState):
     result = model.invoke(
@@ -121,7 +121,7 @@ def review_draft(state: ContentState):
     })
     if response.get("approved"):
         return {"final": state["draft"]}
-    return {"feedback": response.get("feedback", ""), **Command(goto="write_draft")}
+    return Command(goto="write_draft", update={"feedback": response.get("feedback", "")})
 
 builder = StateGraph(ContentState)
 builder.add_node("create_outline", create_outline)

@@ -56,17 +56,34 @@ Route to different nodes based on LLM classification or state.
 
 ```python
 from typing import Literal
+from pydantic import BaseModel
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+
+llm = ChatOpenAI(model="gpt-4o")
+
+class RouteOutput(BaseModel):
+    route: Literal["technical", "general", "escalate"]
 
 class State(MessagesState):
     route: str
 
 def classifier(state: State):
-    # LLM classifies the input
     response = llm.with_structured_output(RouteOutput).invoke(state["messages"])
     return {"route": response.route}
 
 def route_decision(state: State) -> Literal["technical", "general", "escalate"]:
     return state["route"]
+
+def technical_handler(state: State):
+    return {"messages": [AIMessage(content="Handling technical query...")]}
+
+def general_handler(state: State):
+    return {"messages": [AIMessage(content="Handling general query...")]}
+
+def escalation_handler(state: State):
+    return {"messages": [AIMessage(content="Escalating to human agent...")]}
 
 builder = StateGraph(State)
 builder.add_node("classifier", classifier)
@@ -90,8 +107,13 @@ graph = builder.compile()
 Modern pattern using `interrupt()` and `Command(resume=...)`.
 
 ```python
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.types import interrupt, Command
 from langgraph.checkpoint.memory import MemorySaver
+
+llm = ChatOpenAI(model="gpt-4o")
 
 def plan_node(state: MessagesState):
     plan = llm.invoke(state["messages"])
@@ -165,7 +187,16 @@ Fan out work to parallel workers, then aggregate results.
 ```python
 import operator
 from typing import Annotated
+from typing_extensions import TypedDict
+from pydantic import BaseModel
+from langchain_openai import ChatOpenAI
+from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
+
+llm = ChatOpenAI(model="gpt-4o")
+
+class SubjectList(BaseModel):
+    subjects: list[str]
 
 class OverallState(TypedDict):
     topic: str
@@ -177,7 +208,6 @@ class WorkerState(TypedDict):
     subject: str
 
 def generate_subjects(state: OverallState):
-    # LLM generates subjects to research
     response = llm.with_structured_output(SubjectList).invoke(
         f"List 5 subtopics for: {state['topic']}"
     )
@@ -217,6 +247,12 @@ graph = builder.compile()
 Nested graphs for modular, reusable components.
 
 ```python
+from typing_extensions import TypedDict
+from langchain_openai import ChatOpenAI
+from langgraph.graph import StateGraph, START, END
+
+llm = ChatOpenAI(model="gpt-4o")
+
 # Child graph - handles research
 class ResearchState(TypedDict):
     query: str
@@ -259,15 +295,24 @@ parent_graph = parent_builder.compile()
 A supervisor LLM routes tasks to specialized agent sub-graphs.
 
 ```python
-from langgraph.types import Command
 from typing import Literal
+from pydantic import BaseModel
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, AIMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+from langgraph.types import Command
+
+llm = ChatOpenAI(model="gpt-4o")
+
+class RouteDecision(BaseModel):
+    next: Literal["researcher", "coder", "finish"]
 
 class SupervisorState(MessagesState):
     next_agent: str
 
 def supervisor(state: SupervisorState):
     response = llm.with_structured_output(RouteDecision).invoke([
-        SystemMessage("You are a supervisor. Route to: researcher, coder, or finish."),
+        SystemMessage(content="You are a supervisor. Route to: researcher, coder, or finish."),
         *state["messages"]
     ])
     if response.next == "finish":
@@ -275,12 +320,18 @@ def supervisor(state: SupervisorState):
     return Command(goto=response.next)
 
 def researcher(state: SupervisorState):
-    result = research_agent.invoke(state)
-    return {"messages": [AIMessage(content=result, name="researcher")]}
+    result = llm.invoke([
+        SystemMessage(content="You are a research specialist. Provide detailed research."),
+        *state["messages"]
+    ])
+    return {"messages": [AIMessage(content=result.content, name="researcher")]}
 
 def coder(state: SupervisorState):
-    result = coding_agent.invoke(state)
-    return {"messages": [AIMessage(content=result, name="coder")]}
+    result = llm.invoke([
+        SystemMessage(content="You are a coding specialist. Write clean, working code."),
+        *state["messages"]
+    ])
+    return {"messages": [AIMessage(content=result.content, name="coder")]}
 
 builder = StateGraph(SupervisorState)
 builder.add_node("supervisor", supervisor)
@@ -312,9 +363,19 @@ graph = supervisor.compile()
 Persistent user profiles and entity extraction across conversations.
 
 ```python
-from trustcall import create_extractor
+import uuid
+from typing import Optional
+from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage
+from langchain_core.runnables import RunnableConfig
+from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.store.memory import InMemoryStore
+from langgraph.store.base import BaseStore
 from langgraph.checkpoint.memory import MemorySaver
+from trustcall import create_extractor
+
+llm = ChatOpenAI(model="gpt-4o")
 
 class Profile(BaseModel):
     name: Optional[str] = None
@@ -373,7 +434,16 @@ graph = builder.compile(
 Compress long conversations to stay within token limits.
 
 ```python
-from langchain_core.messages import RemoveMessage
+from typing import Literal
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, RemoveMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+
+llm = ChatOpenAI(model="gpt-4o")
+
+def chat_node(state: MessagesState):
+    response = llm.invoke(state["messages"])
+    return {"messages": [response]}
 
 def should_summarize(state: MessagesState) -> Literal["summarize", "chat"]:
     if len(state["messages"]) > 10:
