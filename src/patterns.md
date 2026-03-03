@@ -1281,6 +1281,229 @@ agent = create_react_agent(
 
 ---
 
+## Pattern 22: create_agent with Middleware (LangGraph v1.0+)
+
+`create_agent` replaces `create_react_agent` with a middleware-based architecture. Use built-in middleware for common needs (summarization, HITL) or create custom middleware with decorators.
+
+### Basic create_agent Usage
+
+```python
+from langchain.agents import create_agent
+from langgraph.checkpoint.memory import MemorySaver
+
+# String model identifiers (new in v1.0)
+agent = create_agent(
+    model="openai:gpt-4o",         # or "anthropic:claude-sonnet-4-20250514"
+    tools=[search, calculator],
+    system_prompt="You are a helpful research assistant.",
+    checkpointer=MemorySaver(),
+)
+
+config = {"configurable": {"thread_id": "1"}}
+result = agent.invoke({"messages": [("user", "What is LangGraph?")]}, config)
+result["messages"][-1].pretty_print()
+```
+
+### Summarization Middleware
+
+Automatically summarizes message history when it grows too long, keeping context window manageable.
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langgraph.checkpoint.memory import MemorySaver
+
+summarizer = SummarizationMiddleware(
+    model="openai:gpt-4o-mini",    # model used to generate summaries
+    trigger=("messages", 50),       # summarize when messages exceed 50
+    keep=("messages", 20),          # keep the most recent 20 messages
+)
+
+agent = create_agent(
+    model="openai:gpt-4o",
+    tools=[],
+    system_prompt="You are a helpful assistant.",
+    middleware=[summarizer],
+    checkpointer=MemorySaver(),
+)
+```
+
+### Custom before_model Middleware
+
+Runs before every model invocation. Useful for injecting context, modifying prompts, or logging.
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import before_model
+from langgraph.checkpoint.memory import MemorySaver
+
+@before_model
+def inject_context(state, runtime):
+    """Add system context before each LLM call."""
+    messages = state["messages"]
+    # Return None to pass messages through unchanged
+    # Or return {"messages": modified_messages} to modify
+    if len(messages) > 20:
+        return {"messages": messages[-20:]}  # keep last 20
+    return None
+
+agent = create_agent(
+    model="openai:gpt-4o",
+    tools=[],
+    system_prompt="You are a helpful assistant.",
+    middleware=[inject_context],
+    checkpointer=MemorySaver(),
+)
+```
+
+### Custom after_model Middleware
+
+Runs after every model invocation. Useful for guardrails, logging, or modifying responses.
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import after_model
+from langgraph.checkpoint.memory import MemorySaver
+
+@after_model
+def validate_output(state, runtime, model_response):
+    """Check model output for safety. Return model_response to pass through."""
+    content = model_response.content if hasattr(model_response, "content") else ""
+    if "confidential" in content.lower():
+        from langchain_core.messages import AIMessage
+        return AIMessage(content="I cannot share confidential information.")
+    return model_response
+
+agent = create_agent(
+    model="openai:gpt-4o",
+    tools=[],
+    system_prompt="You are a helpful assistant.",
+    middleware=[validate_output],
+    checkpointer=MemorySaver(),
+)
+```
+
+### Combining Multiple Middleware
+
+Middleware execute sequentially: forward through `before_model`, then reverse through `after_model` (like web server middleware).
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import (
+    SummarizationMiddleware,
+    before_model,
+    after_model,
+)
+from langgraph.checkpoint.memory import MemorySaver
+
+summarizer = SummarizationMiddleware(
+    model="openai:gpt-4o-mini",
+    trigger=("messages", 50),
+)
+
+@before_model
+def add_timestamp(state, runtime):
+    return None  # pass through, just log
+
+@after_model
+def log_output(state, runtime, model_response):
+    print(f"Model responded: {model_response.content[:50]}...")
+    return model_response
+
+agent = create_agent(
+    model="openai:gpt-4o",
+    tools=[],
+    system_prompt="You are a helpful assistant.",
+    middleware=[summarizer, add_timestamp, log_output],
+    checkpointer=MemorySaver(),
+)
+```
+
+---
+
+## Pattern 23: Recursion Limits and RemainingSteps
+
+LangGraph has a default recursion limit (25 steps). Use `RemainingSteps` in state to proactively check how many steps remain and gracefully exit before hitting the hard limit.
+
+### Configuring Recursion Limit
+
+```python
+from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.checkpoint.memory import MemorySaver
+
+builder = StateGraph(MessagesState)
+# ... add nodes and edges ...
+graph = builder.compile(checkpointer=MemorySaver())
+
+# Set recursion limit in config (default is 25)
+config = {"configurable": {"thread_id": "1"}, "recursion_limit": 50}
+result = graph.invoke({"messages": [("user", "hello")]}, config)
+```
+
+### Using RemainingSteps for Proactive Checking
+
+`RemainingSteps` is a managed value — add it to your state TypedDict and LangGraph automatically populates it at runtime.
+
+```python
+from typing import Annotated, TypedDict
+from langgraph.managed import RemainingSteps
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langchain_core.messages import AIMessage
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+    remaining_steps: RemainingSteps  # auto-populated at runtime
+
+def agent_node(state: State):
+    remaining = state["remaining_steps"]
+    if remaining < 3:
+        # Near the limit — produce final answer instead of looping
+        return {"messages": [AIMessage(content="Reached step limit. Here is my best answer so far.")]}
+    # Normal processing...
+    return {"messages": [AIMessage(content=f"Processing... ({remaining} steps left)")]}
+
+def should_continue(state: State) -> str:
+    if state["remaining_steps"] < 3:
+        return END
+    last_msg = state["messages"][-1]
+    if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+        return "tools"
+    return END
+
+builder = StateGraph(State)
+builder.add_node("agent", agent_node)
+builder.add_conditional_edges("agent", should_continue)
+builder.add_edge(START, "agent")
+graph = builder.compile()
+
+# Run with custom limit
+result = graph.invoke(
+    {"messages": [("user", "analyze this")]},
+    config={"recursion_limit": 10}
+)
+print(result["messages"][-1].content)
+```
+
+### Graph Visualization
+
+Visualize any compiled graph as a Mermaid diagram or PNG image.
+
+```python
+graph = builder.compile()
+
+# Get Mermaid diagram text
+mermaid_text = graph.get_graph().draw_mermaid()
+print(mermaid_text)
+
+# Save as PNG image (requires internet — uses Mermaid.ink API)
+png_bytes = graph.get_graph().draw_mermaid_png()
+with open("graph.png", "wb") as f:
+    f.write(png_bytes)
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references

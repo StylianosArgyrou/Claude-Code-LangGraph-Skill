@@ -147,6 +147,13 @@ make all               # Both
 
 ## Changelog
 
+### v1.5.0 — create_agent + Middleware + Recursion Limits (2026-03-03)
+- Added Pattern 22: `create_agent` with Middleware (`SummarizationMiddleware`, `@before_model`, `@after_model`)
+- Added Pattern 23: Recursion Limits + `RemainingSteps` for proactive loop control
+- Graph visualization (`draw_mermaid()` / `draw_mermaid_png()`)
+- Full `create_agent` signature, middleware imports, managed values in api-reference.md
+- Updated dependencies to `langgraph>=1.0.0`
+
 ### v1.4.0 — Pre/Post Model Hooks + Migration Notes (2026-03-03)
 - Added Pattern 21: Pre/Post Model Hooks for `create_react_agent`
 - `pre_model_hook` for message trimming/context management

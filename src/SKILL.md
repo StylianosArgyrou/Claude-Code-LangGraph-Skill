@@ -42,12 +42,17 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 | Wait for all branches before proceeding | Deferred nodes with `defer=True` |
 | Manage context window / trim messages | `pre_model_hook` on `create_react_agent` |
 | Guardrails / validation after LLM | `post_model_hook` on `create_react_agent` |
+| Auto-summarize long conversations | `SummarizationMiddleware` on `create_agent` |
+| Custom logic before/after LLM calls | `@before_model` / `@after_model` middleware |
+| Prevent infinite loops / control depth | `recursion_limit` in config + `RemainingSteps` |
+| Visualize graph structure | `graph.get_graph().draw_mermaid()` / `draw_mermaid_png()` |
 | Production deployment | LangGraph Platform (Cloud/Self-hosted) |
 
 ## Required Dependencies
 
 ```
-langgraph>=0.2.0
+langgraph>=1.0.0
+langchain>=1.0.0
 langchain-core
 langchain-openai  # or langchain-anthropic, langchain-google-genai
 langgraph-checkpoint  # for persistence
@@ -287,6 +292,32 @@ for mode, chunk in graph.stream(input, stream_mode=["custom", "updates"]):
     print(mode, chunk)
 ```
 
+### create_agent with Middleware (v1.0+)
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+
+agent = create_agent(
+    model="openai:gpt-4o",        # string model ID or BaseChatModel
+    tools=[search, calculator],
+    system_prompt="You are a helpful assistant.",
+    middleware=[SummarizationMiddleware(model="openai:gpt-4o-mini", trigger=("messages", 50))],
+    checkpointer=MemorySaver(),
+)
+```
+
+### Recursion Limits + RemainingSteps
+```python
+from langgraph.managed import RemainingSteps
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+    remaining_steps: RemainingSteps  # auto-populated at runtime
+
+# Set limit in config
+config = {"configurable": {"thread_id": "1"}, "recursion_limit": 50}
+```
+
 ### Streaming
 ```python
 # Stream state updates
@@ -353,3 +384,5 @@ When building a LangGraph application:
 19. **Use chained builder syntax for simple graphs** — `StateGraph(State).add_node(fn).add_edge(START, "fn").compile()` is concise; use traditional style for complex graphs
 20. **Use pre_model_hook for context management** — trim or summarize messages before each LLM call to stay within context limits
 21. **Use post_model_hook for guardrails** — validate LLM output, apply content filters, or add HITL approval after each model call
+22. **Prefer `create_agent` for new projects** — `from langchain.agents import create_agent` with middleware replaces `create_react_agent`; use `system_prompt` instead of `prompt`
+23. **Set `recursion_limit` for complex agents** — default is 25; use `RemainingSteps` in state for proactive limit checking; always provide a graceful exit when near the limit

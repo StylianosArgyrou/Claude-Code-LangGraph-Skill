@@ -38,6 +38,25 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.prebuilt import InjectedState, InjectedStore
 ```
 
+### Middleware (LangGraph v1.0+ — from langchain.agents.middleware)
+```python
+from langchain.agents.middleware import (
+    before_model,                # decorator: runs before model invocation
+    after_model,                 # decorator: runs after model invocation
+    wrap_model_call,             # decorator: wraps entire model call
+    dynamic_prompt,              # decorator: dynamically modify prompt
+    hook_config,                 # decorator: access runtime config
+    SummarizationMiddleware,     # auto-summarize long message histories
+    HumanInTheLoopMiddleware,    # interrupt for human approval
+)
+```
+
+### Managed Values
+```python
+from langgraph.managed import RemainingSteps  # auto-populated recursion steps remaining
+from langgraph.managed import IsLastStep      # bool — True when on last step before limit
+```
+
 ### Checkpointers (Persistence)
 ```python
 # Development / testing
@@ -465,7 +484,30 @@ async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
 
 ---
 
-## create_react_agent — Full Signature
+## create_agent — Full Signature (LangGraph v1.0+)
+
+```python
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model,                        # str ("openai:gpt-4o") or BaseChatModel instance
+    tools=None,                   # list of tools, callables, or dicts
+    system_prompt=None,           # str or SystemMessage (renamed from "prompt")
+    middleware=(),                 # list of middleware instances (before_model, after_model, etc.)
+    response_format=None,         # Pydantic model for structured output
+    state_schema=None,            # custom state extending AgentState
+    context_schema=None,          # optional type for runtime configuration
+    checkpointer=None,            # MemorySaver, PostgresSaver, etc.
+    store=None,                   # InMemoryStore for long-term memory
+    interrupt_before=None,        # list of node names to pause before
+    interrupt_after=None,         # list of node names to pause after
+    cache=None,                   # InMemoryCache for node-level caching
+    debug=False,                  # enable debug output
+    name=None,                    # optional agent name (snake_case)
+)
+```
+
+## create_react_agent — Legacy Signature (deprecated)
 
 ```python
 from langgraph.prebuilt import create_react_agent
@@ -484,6 +526,7 @@ agent = create_react_agent(
     version="v2",                 # agent version
     name=None,                    # optional graph name
 )
+# NOTE: Deprecated in LangGraph v1.0. Use create_agent with middleware instead.
 ```
 
 ---
@@ -655,6 +698,45 @@ builder = StateGraph(State, config_schema=Configuration)
     "RUN playwright install chromium"
   ]
 }
+```
+
+---
+
+## Graph Visualization
+
+```python
+graph = builder.compile()
+
+# Mermaid text (no dependencies needed)
+mermaid_text = graph.get_graph().draw_mermaid()
+
+# PNG image (uses Mermaid.ink API — requires internet)
+png_bytes = graph.get_graph().draw_mermaid_png()
+with open("graph.png", "wb") as f:
+    f.write(png_bytes)
+```
+
+---
+
+## Recursion Limit
+
+```python
+# Default recursion limit is 25 steps
+# Configure via config dict (NOT in compile)
+config = {"configurable": {"thread_id": "1"}, "recursion_limit": 50}
+result = graph.invoke(input, config)
+
+# Use RemainingSteps in state to check remaining steps at runtime
+from langgraph.managed import RemainingSteps
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+    remaining_steps: RemainingSteps  # auto-populated by LangGraph
+
+def my_node(state: State):
+    if state["remaining_steps"] < 3:
+        return {"messages": [AIMessage(content="Stopping — near recursion limit.")]}
+    # normal processing...
 ```
 
 ---

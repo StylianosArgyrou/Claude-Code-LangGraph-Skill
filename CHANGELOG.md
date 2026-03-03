@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.5.0] - 2026-03-03
+
+### Added
+- Pattern 22: `create_agent` with Middleware (LangGraph v1.0+)
+  - `from langchain.agents import create_agent` with `system_prompt` parameter
+  - String model identifiers: `model="openai:gpt-4o"`
+  - `SummarizationMiddleware` for auto-summarizing long conversations
+  - Custom `@before_model` and `@after_model` middleware decorators
+  - Combining multiple middleware (sequential execution model)
+- Pattern 23: Recursion Limits and `RemainingSteps`
+  - Configuring `recursion_limit` via config dict (default 25)
+  - `from langgraph.managed import RemainingSteps` — auto-populated managed value
+  - Proactive limit checking: `if state["remaining_steps"] < 3: return final_answer`
+- Graph visualization: `draw_mermaid()` and `draw_mermaid_png()` in patterns + api-reference
+- Middleware imports section in api-reference.md (`langchain.agents.middleware`)
+- Managed values section in api-reference.md (`RemainingSteps`, `IsLastStep`)
+- `create_agent` full signature in api-reference.md
+- Decision guide rows: auto-summarize, custom middleware, recursion limits, visualization
+- Quick references: create_agent with Middleware, Recursion Limits + RemainingSteps
+- Implementation Guidelines #22-23 (prefer create_agent, set recursion_limit)
+
+### Changed
+- Updated dependencies: `langgraph>=1.0.0`, `langchain>=1.0.0`
+- Marked `create_react_agent` signature as "Legacy (deprecated)" in api-reference.md
+- Isolated subagent test: 5/5 pytest tests passed (create_agent, middleware, RemainingSteps, visualization)
+
 ## [1.4.0] - 2026-03-03
 
 ### Added
