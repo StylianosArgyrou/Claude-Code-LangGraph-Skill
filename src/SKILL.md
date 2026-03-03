@@ -338,3 +338,4 @@ When building a LangGraph application:
 16. **Use CachePolicy for expensive deterministic nodes** — avoids redundant LLM calls or API lookups with `CachePolicy(ttl=seconds)`
 17. **Use defer=True for fan-in nodes** — ensures node waits for all upstream branches to complete before executing
 18. **Prefer `get_stream_writer()` for custom streaming** — call inside any node to emit progress events; consume with `stream_mode="custom"`
+19. **Use chained builder syntax for simple graphs** — `StateGraph(State).add_node(fn).add_edge(START, "fn").compile()` is concise; use traditional style for complex graphs

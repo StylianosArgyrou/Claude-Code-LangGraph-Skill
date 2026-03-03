@@ -135,6 +135,10 @@ builder.add_node("name", function, cache_policy=CachePolicy(ttl=120))
 
 # Deferred (wait for all upstream paths before executing)
 builder.add_node("name", function, defer=True)
+
+# Note: add_node, add_edge, add_conditional_edges all return self
+# enabling chained/fluent syntax:
+# graph = StateGraph(State).add_node(fn).add_edge(START, "fn").compile()
 ```
 
 ### Node Function Signatures

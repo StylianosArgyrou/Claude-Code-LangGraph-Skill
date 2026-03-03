@@ -147,6 +147,10 @@ make all               # Both
 
 ## Changelog
 
+### v1.3.0 — Fluent Builder Syntax (2026-03-03)
+- Added Pattern 20: Chained/Fluent Builder — `StateGraph` methods return `self` for one-liner graphs
+- Added fluent syntax note to api-reference.md and guideline #19 to SKILL.md
+
 ### v1.2.0 — Modern Streaming + NotRequired (2026-03-03)
 - Added Pattern 19: Custom Streaming with `get_stream_writer()`
 - Added `get_stream_writer`, `get_config`, `get_store` config utilities to api-reference.md

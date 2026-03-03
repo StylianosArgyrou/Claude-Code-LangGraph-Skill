@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0] - 2026-03-03
+
+### Added
+- Pattern 20: Chained/Fluent Builder Syntax — `StateGraph` methods return `self` for method chaining
+- Fluent syntax note in api-reference.md `add_node` documentation
+- Implementation Guideline #19 (use chained syntax for simple graphs)
+- Compared traditional vs fluent styles with code examples
+- Isolated subagent test: 12/12 pytest tests passed (fluent vs traditional + combined features)
+
 ## [1.2.0] - 2026-03-03
 
 ### Added

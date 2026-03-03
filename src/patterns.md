@@ -1151,6 +1151,70 @@ async def my_node(state: State, writer: StreamWriter):
 
 ---
 
+## Pattern 20: Chained (Fluent) Builder Syntax
+
+LangGraph's `StateGraph` methods return `self`, enabling method chaining for concise graph construction.
+Both styles produce identical graphs — choose based on readability preference.
+
+### Traditional Style (Recommended for Complex Graphs)
+
+```python
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    text: str
+
+def step_a(state: State):
+    return {"text": state["text"] + " -> A"}
+
+def step_b(state: State):
+    return {"text": state["text"] + " -> B"}
+
+builder = StateGraph(State)
+builder.add_node("step_a", step_a)
+builder.add_node("step_b", step_b)
+builder.add_edge(START, "step_a")
+builder.add_edge("step_a", "step_b")
+builder.add_edge("step_b", END)
+graph = builder.compile()
+
+result = graph.invoke({"text": "start"})
+print(result["text"])  # "start -> A -> B"
+```
+
+### Fluent/Chained Style (Concise for Simple Graphs)
+
+```python
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    text: str
+
+def step_a(state: State):
+    return {"text": state["text"] + " -> A"}
+
+def step_b(state: State):
+    return {"text": state["text"] + " -> B"}
+
+# One-liner — methods return self, enabling chaining
+graph = (
+    StateGraph(State)
+    .add_node("step_a", step_a)
+    .add_node("step_b", step_b)
+    .add_edge(START, "step_a")
+    .add_edge("step_a", "step_b")
+    .add_edge("step_b", END)
+    .compile()
+)
+
+result = graph.invoke({"text": "start"})
+print(result["text"])  # "start -> A -> B"
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references
