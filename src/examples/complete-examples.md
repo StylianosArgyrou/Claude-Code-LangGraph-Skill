@@ -338,6 +338,266 @@ graph = builder.compile()
 
 ---
 
+## Example 7: Adaptive RAG Agent
+
+Routes queries to retrieval or direct answer based on whether the question needs external context.
+Combines conditional routing with retrieval-augmented generation.
+
+```python
+from typing import Literal
+from typing_extensions import TypedDict
+from pydantic import BaseModel
+from langchain_openai import ChatOpenAI
+from langgraph.graph import StateGraph, START, END
+
+model = ChatOpenAI(model="gpt-4o")
+
+# -- Simulated knowledge base (replace with real vector store) --
+KNOWLEDGE_BASE = {
+    "pricing": "Our Basic plan is $10/mo, Pro is $25/mo, Enterprise is custom.",
+    "refund": "Refunds are available within 30 days of purchase.",
+    "api": "Our API supports REST and GraphQL. Rate limit is 1000 req/min.",
+}
+
+def retrieve(query: str) -> str:
+    """Simple keyword retrieval — replace with vector similarity search."""
+    for key, value in KNOWLEDGE_BASE.items():
+        if key in query.lower():
+            return value
+    return "No relevant documents found."
+
+# -- State and Models --
+
+class RouteDecision(BaseModel):
+    route: Literal["retrieve", "direct"]
+    reasoning: str
+
+class RAGState(TypedDict):
+    question: str
+    route: str
+    context: str
+    answer: str
+
+# -- Nodes --
+
+def classify_query(state: RAGState):
+    decision = model.with_structured_output(RouteDecision).invoke(
+        f"Should this question use document retrieval or be answered directly?\n"
+        f"Question: {state['question']}\n"
+        f"Route to 'retrieve' if it asks about pricing, refunds, or API details."
+    )
+    return {"route": decision.route}
+
+def route_query(state: RAGState) -> Literal["retrieve_docs", "direct_answer"]:
+    return "retrieve_docs" if state["route"] == "retrieve" else "direct_answer"
+
+def retrieve_docs(state: RAGState):
+    context = retrieve(state["question"])
+    return {"context": context}
+
+def generate_answer(state: RAGState):
+    context = state.get("context", "")
+    prompt = f"Answer this question: {state['question']}"
+    if context:
+        prompt = f"Using this context:\n{context}\n\n{prompt}"
+    result = model.invoke(prompt)
+    return {"answer": result.content}
+
+def direct_answer(state: RAGState):
+    result = model.invoke(f"Answer this question directly: {state['question']}")
+    return {"answer": result.content}
+
+# -- Graph --
+
+builder = StateGraph(RAGState)
+builder.add_node("classify", classify_query)
+builder.add_node("retrieve_docs", retrieve_docs)
+builder.add_node("generate_answer", generate_answer)
+builder.add_node("direct_answer", direct_answer)
+
+builder.add_edge(START, "classify")
+builder.add_conditional_edges("classify", route_query)
+builder.add_edge("retrieve_docs", "generate_answer")
+builder.add_edge("generate_answer", END)
+builder.add_edge("direct_answer", END)
+
+graph = builder.compile()
+
+# Usage
+result = graph.invoke({"question": "What is the pricing for the Pro plan?"})
+print(result["answer"])
+```
+
+---
+
+## Example 8: Self-Correcting Code Generator
+
+Generates code, validates it, and loops back to fix errors until correct.
+Demonstrates the reflexion/self-correction pattern with conditional cycles.
+
+```python
+from typing import Literal
+from typing_extensions import TypedDict
+from langchain_openai import ChatOpenAI
+from langgraph.graph import StateGraph, START, END
+
+model = ChatOpenAI(model="gpt-4o")
+
+class CodeState(TypedDict):
+    task: str
+    code: str
+    error: str
+    attempts: int
+
+def generate_code(state: CodeState):
+    prompt = f"Write a Python function for: {state['task']}\n"
+    if state.get("error"):
+        prompt += f"Previous attempt had this error:\n{state['error']}\nFix the code."
+    if state.get("code"):
+        prompt += f"\nPrevious code:\n{state['code']}"
+    prompt += "\nReturn ONLY the Python code, no explanations."
+    result = model.invoke(prompt)
+    return {"code": result.content, "attempts": state.get("attempts", 0) + 1}
+
+def validate_code(state: CodeState):
+    """Try to compile the code to check for syntax errors."""
+    code = state["code"]
+    # Strip markdown code fences if present
+    if "```python" in code:
+        code = code.split("```python")[1].split("```")[0]
+    elif "```" in code:
+        code = code.split("```")[1].split("```")[0]
+    try:
+        compile(code.strip(), "<string>", "exec")
+        return {"error": ""}
+    except SyntaxError as e:
+        return {"error": f"SyntaxError: {e}"}
+
+def should_retry(state: CodeState) -> Literal["generate", "__end__"]:
+    if state.get("error") and state["attempts"] < 3:
+        return "generate"
+    return END
+
+builder = StateGraph(CodeState)
+builder.add_node("generate", generate_code)
+builder.add_node("validate", validate_code)
+
+builder.add_edge(START, "generate")
+builder.add_edge("generate", "validate")
+builder.add_conditional_edges("validate", should_retry)
+
+graph = builder.compile()
+
+# Usage
+result = graph.invoke({"task": "fibonacci sequence generator", "code": "", "error": "", "attempts": 0})
+print(f"Generated in {result['attempts']} attempt(s):")
+print(result["code"])
+```
+
+---
+
+## Example 9: Customer Support with Escalation and HITL
+
+Combines routing, specialized handlers, and human-in-the-loop escalation.
+Uses `interrupt()` for agent-to-human handoff when the AI cannot resolve an issue.
+
+```python
+from typing import Literal
+from pydantic import BaseModel
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, AIMessage
+from langgraph.graph import MessagesState, StateGraph, START, END
+from langgraph.types import interrupt, Command
+from langgraph.checkpoint.memory import MemorySaver
+
+model = ChatOpenAI(model="gpt-4o")
+
+class TriageDecision(BaseModel):
+    department: Literal["billing", "technical", "escalate"]
+    confidence: float
+
+class SupportState(MessagesState):
+    department: str
+    confidence: float
+    resolved: bool
+
+def triage(state: SupportState):
+    decision = model.with_structured_output(TriageDecision).invoke([
+        SystemMessage(
+            "Classify this support ticket. Use 'escalate' if the issue is "
+            "complex, involves account security, or you're unsure (confidence < 0.7)."
+        ),
+        *state["messages"]
+    ])
+    return {"department": decision.department, "confidence": decision.confidence}
+
+def route_ticket(state: SupportState) -> Literal["billing", "technical", "escalate"]:
+    if state["confidence"] < 0.7:
+        return "escalate"
+    return state["department"]
+
+def billing_handler(state: SupportState):
+    response = model.invoke([
+        SystemMessage("You are a billing specialist. Resolve payment and invoice issues."),
+        *state["messages"]
+    ])
+    return {"messages": [response], "resolved": True}
+
+def technical_handler(state: SupportState):
+    response = model.invoke([
+        SystemMessage("You are a technical specialist. Resolve bugs and setup issues."),
+        *state["messages"]
+    ])
+    return {"messages": [response], "resolved": True}
+
+def escalate_to_human(state: SupportState):
+    """Pause execution and hand off to a human agent."""
+    human_response = interrupt({
+        "reason": "This ticket requires human attention",
+        "department": state["department"],
+        "confidence": state["confidence"],
+        "conversation": [m.content for m in state["messages"]],
+        "action": "Please provide a resolution message for the customer."
+    })
+    return {
+        "messages": [AIMessage(content=human_response)],
+        "resolved": True,
+    }
+
+builder = StateGraph(SupportState)
+builder.add_node("triage", triage)
+builder.add_node("billing", billing_handler)
+builder.add_node("technical", technical_handler)
+builder.add_node("escalate", escalate_to_human)
+
+builder.add_edge(START, "triage")
+builder.add_conditional_edges("triage", route_ticket)
+builder.add_edge("billing", END)
+builder.add_edge("technical", END)
+builder.add_edge("escalate", END)
+
+graph = builder.compile(checkpointer=MemorySaver())
+
+# Usage — normal ticket
+config = {"configurable": {"thread_id": "ticket-1"}}
+result = graph.invoke(
+    {"messages": [("user", "I was charged twice for my subscription")]},
+    config
+)
+print(result["messages"][-1].content)
+
+# Usage — escalated ticket (pauses at interrupt)
+config2 = {"configurable": {"thread_id": "ticket-2"}}
+result = graph.invoke(
+    {"messages": [("user", "Someone accessed my account without permission")]},
+    config2
+)
+# If interrupted, resume with human agent's response:
+# result = graph.invoke(Command(resume="We've secured your account and reset your password."), config2)
+```
+
+---
+
 ## Project Scaffolding Template
 
 When creating a new LangGraph project from scratch:

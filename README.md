@@ -79,7 +79,7 @@ src/
 │   ├── api-reference.md             # Complete import map, StateGraph API, all signatures
 │   └── patterns.md                  # 14 advanced patterns with full code
 └── examples/
-    └── complete-examples.md         # 6 production-ready working examples
+    └── complete-examples.md         # 9 production-ready working examples
 ```
 
 ### Patterns Covered
@@ -100,6 +100,9 @@ src/
 | Functional API | `@entrypoint` + `@task` — durable workflows without graphs |
 | Error Handling | `RetryPolicy` with exponential backoff |
 | Async Execution | `async def` nodes + `ainvoke` / `astream` |
+| Adaptive RAG | Conditional routing + retrieval + generation |
+| Self-Correcting Code | Reflexion loop with validation |
+| Support with Escalation | Routing + HITL escalation |
 
 ### API Coverage
 
@@ -143,6 +146,12 @@ make all               # Both
 4. GitHub Actions automatically builds and publishes the release with artifacts
 
 ## Changelog
+
+### v0.5.0 — Real-World Agent Examples (2026-03-03)
+- Added Example 7: Adaptive RAG Agent with conditional routing and retrieval
+- Added Example 8: Self-Correcting Code Generator with reflexion loop
+- Added Example 9: Customer Support with Escalation and HITL
+- Added RAG and code generation rows to SKILL.md decision guide
 
 ### v0.4.0 — Async Patterns + New Checkpointers (2026-03-03)
 - Added Pattern 14: Async Graph Execution (`async def` nodes, `ainvoke`, `astream`)

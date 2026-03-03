@@ -35,6 +35,8 @@ You are a LangGraph expert. You help users design, build, and deploy production-
 | Long-term user memory | `InMemoryStore` or persistent Store + namespaces |
 | Durable workflows without explicit graphs | Functional API (`@entrypoint` + `@task`) |
 | Automatic retry on transient failures | `RetryPolicy` on nodes or tasks |
+| Adaptive RAG (retrieval + generation) | Conditional routing + retrieval node + LLM generation |
+| Self-correcting / reflexion loops | Conditional cycle: generate → validate → fix |
 | Async / high-concurrency execution | `async def` nodes + `ainvoke` / `astream` |
 | Production deployment | LangGraph Platform (Cloud/Self-hosted) |
 

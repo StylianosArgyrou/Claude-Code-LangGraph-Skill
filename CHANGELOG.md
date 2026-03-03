@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0] - 2026-03-03
+
+### Added
+- Example 7: Adaptive RAG Agent — conditional routing between retrieval and direct answer
+- Example 8: Self-Correcting Code Generator — reflexion loop with syntax validation
+- Example 9: Customer Support with Escalation and HITL — routing + interrupt for human handoff
+- RAG and self-correcting code rows in SKILL.md decision guide table
+
 ## [0.4.0] - 2026-03-03
 
 ### Added
