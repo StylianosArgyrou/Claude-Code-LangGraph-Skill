@@ -21,7 +21,7 @@ When installed, Claude Code gains deep knowledge of LangGraph and can:
 ### Option 1: Clone and Install (Recommended)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Claude-Code-LangGraph-Skill.git
+git clone https://github.com/StylianosArgyrou/Claude-Code-LangGraph-Skill.git
 cd Claude-Code-LangGraph-Skill
 ./install.sh
 ```
@@ -29,7 +29,7 @@ cd Claude-Code-LangGraph-Skill
 ### Option 2: Make Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Claude-Code-LangGraph-Skill.git
+git clone https://github.com/StylianosArgyrou/Claude-Code-LangGraph-Skill.git
 cd Claude-Code-LangGraph-Skill
 make install
 ```
@@ -94,44 +94,54 @@ Save to cooking_assistant.py.
 
 ```
 src/
-├── SKILL.md                     # Core skill (architecture guide, quick reference, patterns)
+├── SKILL.md                     # Core skill (architecture guide, prompt builder, quick reference)
 ├── api-reference.md             # Complete import map, StateGraph API, all signatures
-├── patterns.md                  # 16 advanced patterns with full code
+├── patterns.md                  # 25 advanced patterns + prompt templates
 └── examples/
-    └── complete-examples.md     # 10 production-ready working examples
+    └── complete-examples.md     # 12 production-ready working examples
 ```
 
-### Patterns Covered
+### Patterns Covered (25)
 
-| Pattern | Description |
-|---------|-------------|
-| ReAct Agent | Tool-calling agent with reasoning loop |
-| Router | Conditional branching to specialized handlers |
-| Human-in-the-Loop | `interrupt()` + `Command(resume=...)` approval flows |
-| Map-Reduce | Parallel processing with `Send()` API |
-| Sub-Graphs | Nested modular graphs |
-| Supervisor | Multi-agent orchestration with routing LLM |
-| Memory Agent | Persistent user profiles with Trustcall |
-| Chatbot Summarization | Conversation compression for token management |
-| Streaming | Values, updates, messages, custom events |
-| Time Travel | State history, replay, and state editing |
-| Double Texting | Handling concurrent user messages |
-| Functional API | `@entrypoint` + `@task` — durable workflows without graphs |
-| Error Handling | `RetryPolicy` with exponential backoff |
-| Async Execution | `async def` nodes + `ainvoke` / `astream` |
-| Adaptive RAG | Conditional routing + retrieval + generation |
-| Self-Correcting Code | Reflexion loop with validation |
-| Support with Escalation | Routing + HITL escalation |
-| Testing Graphs | pytest with mocked LLMs and routing tests |
-| Production Migration | MemorySaver → PostgresSaver/RedisSaver |
+| # | Pattern | Description |
+|---|---------|-------------|
+| 1 | ReAct Agent | Tool-calling agent with reasoning loop |
+| 2 | Router | Conditional branching to specialized handlers |
+| 3 | Human-in-the-Loop | `interrupt()` + `Command(resume=...)` approval flows |
+| 4 | Map-Reduce | Parallel processing with `Send()` API |
+| 5 | Sub-Graphs | Nested modular graphs |
+| 6 | Supervisor | Multi-agent orchestration with routing LLM |
+| 7 | Memory Agent | Persistent user profiles with Trustcall |
+| 8 | Chatbot Summarization | Conversation compression for token management |
+| 9 | Streaming | Values, updates, messages, custom events |
+| 10 | Time Travel | State history, replay, and state editing |
+| 11 | Double Texting | Handling concurrent user messages |
+| 12 | Functional API | `@entrypoint` + `@task` — durable workflows without graphs |
+| 13 | Error Handling | `RetryPolicy` with exponential backoff |
+| 14 | Async Execution | `async def` nodes + `ainvoke` / `astream` |
+| 15 | Testing Graphs | pytest with mocked LLMs and routing tests |
+| 16 | Production Migration | MemorySaver → PostgresSaver/RedisSaver |
+| 17 | Node Caching | `CachePolicy` + `InMemoryCache` for skipping redundant computation |
+| 18 | Deferred Nodes | `defer=True` — wait for all upstream branches (fan-in) |
+| 19 | Custom Streaming | `get_stream_writer()` for progress events from inside nodes |
+| 20 | Fluent Builder | Chained `StateGraph(S).add_node(fn).add_edge(START,"fn").compile()` |
+| 21 | Pre/Post Model Hooks | `pre_model_hook` / `post_model_hook` on `create_react_agent` |
+| 22 | create_agent + Middleware | `SummarizationMiddleware`, `@before_model`, `@after_model` |
+| 23 | Recursion Limits | `RemainingSteps` for proactive loop control |
+| 24 | Interrupt Safety | Idempotency rules, side effect placement, JSON payloads |
+| 25 | Graph vs Functional API | Decision guide with comparison table |
 
 ### API Coverage
 
 - `StateGraph`, `MessagesState`, `START`, `END`
-- `Send`, `Command`, `interrupt`
-- `ToolNode`, `tools_condition`, `create_react_agent`
-- `MemorySaver`, `PostgresSaver`, `SqliteSaver`, `MongoDBSaver`
-- `InMemoryStore`, `BaseStore`
+- `Send`, `Command`, `interrupt`, `CachePolicy`, `RetryPolicy`
+- `ToolNode`, `tools_condition`, `create_react_agent`, `create_agent`
+- `MemorySaver`, `PostgresSaver`, `SqliteSaver`, `MongoDBSaver`, `RedisSaver`
+- `InMemoryStore`, `BaseStore`, `InMemoryCache`
+- `RemainingSteps`, `IsLastStep` (managed values)
+- `get_stream_writer`, `get_config`, `get_store` (config utilities)
+- Middleware: `SummarizationMiddleware`, `@before_model`, `@after_model`
+- Graph visualization: `draw_mermaid()`, `draw_mermaid_png()`
 - Streaming modes: `values`, `updates`, `messages`, `custom`, `debug`
 - Configuration schemas, deployment config, LangGraph SDK client
 
@@ -148,8 +158,8 @@ rm -rf ~/.claude/skills/langgraph
 ## Building Distribution Packages
 
 ```bash
-make package           # Creates dist/langgraph-v1.0.0.zip
-make package-combined  # Creates dist/langgraph-v1.0.0-combined.md (single file)
+make package           # Creates dist/langgraph-v<version>.zip
+make package-combined  # Creates dist/langgraph-v<version>-combined.md (single file)
 make all               # Both
 ```
 
@@ -167,6 +177,16 @@ make all               # Both
 4. GitHub Actions automatically builds and publishes the release with artifacts
 
 ## Changelog
+
+### v1.7.2 — README Audit + Fixes (2026-03-03)
+- Fixed git clone URLs to point to correct repository
+- Updated patterns table to full 25 patterns with descriptions
+- Expanded API coverage section with all v1.1.0-v1.7.0 additions
+- Fixed file tree description (25 patterns, 12 examples)
+
+### v1.7.1 — .env Guideline + Cooking Example (2026-03-03)
+- Added Guideline #26: generated code must use `dotenv` and read keys via `os.environ`
+- Added cooking assistant example in README showing single-prompt workflow
 
 ### v1.7.0 — Interactive Prompt Wizard (2026-03-03)
 - Added Prompt Builder Protocol: 8 guided questions that transform vague ideas into optimized /langgraph prompts

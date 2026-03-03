@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.7.2] - 2026-03-03
+
+### Fixed
+- README.md: Fixed git clone URLs to point to `StylianosArgyrou/Claude-Code-LangGraph-Skill`
+- README.md: Updated patterns table from 19 rows to full 25 numbered patterns
+- README.md: Expanded API Coverage section with all additions from v1.1.0-v1.7.0
+- README.md: Fixed file tree description (25 patterns + prompt templates, 12 examples)
+- README.md: Fixed `make package` version placeholder
+- README.md: Added v1.7.1 and v1.7.2 changelog entries
+
 ## [1.7.1] - 2026-03-03
 
 ### Added
