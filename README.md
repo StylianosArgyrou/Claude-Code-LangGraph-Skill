@@ -147,6 +147,10 @@ make all               # Both
 
 ## Changelog
 
+### v1.0.0 — Final Release (2026-03-03)
+- Final audit: 16 patterns, 10 examples, 307-line SKILL.md, all code blocks verified
+- Distribution packages verified (zip, tar.gz, combined single-file)
+
 ### v0.7.0 — Structure Reconciliation + Polish (2026-03-03)
 - Flattened `src/references/` into `src/` — relative links now match installed layout
 - Updated install.sh, Makefile, README manual install instructions

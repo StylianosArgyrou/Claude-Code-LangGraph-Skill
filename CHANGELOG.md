@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.0] - 2026-03-03
+
+### Release
+- Final release audit — all code blocks verified, imports complete, models defined
+- SKILL.md: 307 lines (under 500 limit), 14 decision guide rows, 15 implementation guidelines
+- 16 patterns: ReAct, Router, HITL, Map-Reduce, Sub-Graphs, Supervisor, Memory, Summarization, Streaming, Time Travel, Double Texting, Functional API, Error Handling, Async, Testing, Production Migration
+- 10 complete examples: Chatbot, Research Agent, Multi-Step Approval, Parallel Research, Customer Support, Deployment-Ready, Adaptive RAG, Self-Correcting Code, Support with Escalation, Test Suite Template
+- Distribution packages verified (zip, tar.gz, combined single-file)
+- Flat file structure: SKILL.md, api-reference.md, patterns.md, examples/
+
 ## [0.7.0] - 2026-03-03
 
 ### Changed
