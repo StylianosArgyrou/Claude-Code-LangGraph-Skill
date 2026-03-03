@@ -147,6 +147,11 @@ make all               # Both
 
 ## Changelog
 
+### v1.7.0 — Interactive Prompt Wizard (2026-03-03)
+- Added Prompt Builder Protocol: 8 guided questions that transform vague ideas into optimized /langgraph prompts
+- 4 prompt templates (simple agent, multi-agent, RAG, workflow automation) + construction formula
+- Example 12: Full Prompt Wizard walkthrough from vague idea to generated app
+
 ### v1.6.1 — Pattern Showcase Demo (2026-03-03)
 - Added Example 11: Multi-Agent Research System exercising 11 patterns in one app
 - Demo prompt validated: fresh subagent generates and runs full system from `/langgraph` prompt

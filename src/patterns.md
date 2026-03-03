@@ -1690,6 +1690,95 @@ builder.add_node("orchestrator", orchestrator_node)
 
 ---
 
+## Prompt Templates (for Prompt Builder Protocol)
+
+These templates show how to transform vague user requests into precise `/langgraph` prompts. Use these as a reference when the Prompt Builder Protocol (in SKILL.md) activates.
+
+### Template 1: Simple Agent
+
+**Vague request:** "Build me a chatbot that can search the web"
+
+**Optimized prompt:**
+```
+/langgraph Build a ReAct agent with web search capability.
+Use create_react_agent with a Tavily search tool.
+Add MemorySaver checkpointer for conversation memory.
+System prompt: "You are a helpful research assistant that searches the web to answer questions."
+Include a __main__ block that runs an interactive chat loop with thread_id persistence.
+Save to search_agent.py.
+```
+
+### Template 2: Multi-Agent System
+
+**Vague request:** "I need something that can handle customer support"
+
+**Optimized prompt:**
+```
+/langgraph Build a customer support system with 3 specialized agents:
+1. "triage" agent — classifies ticket priority (low/medium/high) using structured output
+2. "support" agent — handles low/medium tickets with FAQ tool and knowledge base search
+3. "escalation" agent — handles high priority with interrupt() for human approval
+
+Architecture: Supervisor StateGraph routes to sub-agents based on triage classification.
+Use RetryPolicy(max_attempts=3) on the knowledge base search tool.
+Add MemorySaver for session persistence and InMemoryStore for customer profiles.
+Stream with stream_mode="updates" to show routing decisions in real-time.
+Save to support_system.py with a test scenario for each priority level.
+```
+
+### Template 3: RAG System
+
+**Vague request:** "Build a RAG agent"
+
+**Optimized prompt:**
+```
+/langgraph Build an Adaptive RAG agent with self-correction.
+Nodes: router (classify query), retriever (search vector store), grader (check relevance),
+generator (produce answer), hallucination_check (validate grounding).
+Conditional routing: if documents irrelevant → re-retrieve with modified query (max 2 retries).
+If hallucination detected → regenerate with stricter prompt.
+Use CachePolicy(ttl=600) on the retriever node to avoid redundant searches.
+Add RemainingSteps to prevent infinite correction loops.
+Mock the vector store with a simple in-memory search for testing.
+Save to adaptive_rag.py with 3 test queries (direct answer, needs retrieval, triggers correction).
+```
+
+### Template 4: Workflow Automation
+
+**Vague request:** "Automate our content pipeline"
+
+**Optimized prompt:**
+```
+/langgraph Build a content pipeline workflow with these sequential stages:
+1. "research" — gather information on a topic (use web search tool)
+2. "outline" — create article outline using structured output (Pydantic model)
+3. "draft" — write first draft based on outline and research
+4. "review" — interrupt() for human editor review and feedback
+5. "revise" — incorporate feedback and produce final version
+
+Use Functional API (@entrypoint + @task) since this is a linear workflow.
+Add get_stream_writer in each stage to emit progress percentages.
+MemorySaver for checkpointing (resume if interrupted mid-pipeline).
+Stream with stream_mode=["updates", "custom"] for both state and progress.
+Save to content_pipeline.py with a test topic "The Future of AI Agents in 2026".
+```
+
+### Prompt Construction Formula
+
+After the Prompt Builder questions, construct the prompt using this structure:
+```
+/langgraph Build a [architecture] system that [goal].
+[If multi-agent:] It needs [N] specialized agents: [agent1] for [role], [agent2] for [role].
+[If tools:] Use [tools] with RetryPolicy(max_attempts=[N]).
+[If memory:] Add [checkpointer] for persistence and [Store] for [what to remember].
+[If HITL:] Include interrupt() at [decision point] for human [action].
+[If streaming:] Stream with stream_mode=[modes] for [purpose].
+[If production:] Deploy with [PostgresSaver/langgraph.json/config schema].
+Save to [filename].py with [test scenario description].
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 1. **Don't store large data in state** — use external storage, pass references

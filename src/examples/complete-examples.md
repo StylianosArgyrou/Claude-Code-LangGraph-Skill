@@ -787,3 +787,67 @@ Save to research_system.py. Include a __main__ block that runs the system with a
 | Recursion safety | Pattern 23: RemainingSteps |
 | Persistence | Checkpointer (MemorySaver) |
 | create_agent | Pattern 22: create_agent with Middleware |
+
+---
+
+## Example 12: Prompt Wizard — From Vague Idea to Generated App
+
+This example shows the Prompt Builder Protocol in action. When a user gives a vague request, Claude asks targeted questions and constructs an optimized prompt.
+
+### User's Vague Request
+```
+/langgraph build me an agent that helps with cooking
+```
+
+### Prompt Builder Questions (Claude asks these one by one)
+
+**Q1 — Goal:** "What should the agent do? Describe the end-user interaction."
+→ User: "It suggests recipes based on what ingredients I have, and walks me through cooking step by step"
+
+**Q2 — Architecture:** "Single agent or multiple specialized agents?"
+→ User: "Multiple — one for recipe finding, one for step-by-step guidance"
+
+**Q3 — Tools:** "What external systems does it need?"
+→ User: "A recipe database search and a timer tool"
+
+**Q4 — Memory:** "Does it need to remember across conversations?"
+→ User: "Yes, remember my dietary preferences and past recipes"
+
+**Q5 — Human oversight:** "Are there decisions that need human approval?"
+→ User: "No, just let it guide me"
+
+**Q6 — Streaming:** "Does the user need to see real-time progress?"
+→ User: "Yes, stream the cooking steps as they happen"
+
+**Q7 — Production:** "Development or production?"
+→ User: "Just development for now"
+
+**Q8 — Constraints:** "Any specific requirements?"
+→ User: "Use OpenAI GPT-4o"
+
+### Constructed Optimized Prompt
+```
+/langgraph Build a cooking assistant with 2 specialized agents:
+1. "recipe_finder" — searches recipe database based on available ingredients,
+   filters by user dietary preferences from memory store
+2. "cooking_guide" — walks user through recipe step-by-step with a timer tool
+
+Architecture: Supervisor StateGraph routes between agents based on conversation phase
+(finding recipe vs cooking). Use create_react_agent for recipe_finder with search tool
+and RetryPolicy(max_attempts=2).
+Add MemorySaver for session persistence.
+Add InMemoryStore for user profiles with namespace ("cooking", user_id) storing
+dietary preferences and favorite recipes.
+Stream with stream_mode="messages" for real-time cooking step narration.
+Use ChatOpenAI(model="gpt-4o") as the LLM.
+Save to cooking_assistant.py with a test scenario:
+user has "chicken, rice, garlic, soy sauce" and is allergic to peanuts.
+```
+
+### Key Transformation
+
+| Vague Request (9 words) | Optimized Prompt (120+ words) |
+|--------------------------|-------------------------------|
+| "build me an agent that helps with cooking" | Specifies 2 agents, tools, memory, streaming, model, and test scenario |
+
+The Prompt Builder Protocol filled in: architecture (supervisor + 2 sub-agents), tools (recipe search + timer), memory (dietary preferences), streaming (messages mode), checkpointer (MemorySaver), and a concrete test scenario.

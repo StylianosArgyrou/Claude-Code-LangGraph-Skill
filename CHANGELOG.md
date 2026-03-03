@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.7.0] - 2026-03-03
+
+### Added
+- **Interactive Prompt Wizard** (Prompt Builder Protocol) in SKILL.md
+  - 8 guided questions that transform vague user ideas into optimized /langgraph prompts
+  - Activation rule: triggers when request is < 20 words or missing architecture/tools/memory details
+  - Questions cover: Goal, Architecture, Tools, Memory, Human oversight, Streaming, Production, Constraints
+- Prompt Templates section in patterns.md with 4 before/after examples:
+  - Template 1: Simple Agent (search chatbot)
+  - Template 2: Multi-Agent System (customer support)
+  - Template 3: RAG System (adaptive RAG with self-correction)
+  - Template 4: Workflow Automation (content pipeline)
+  - Prompt Construction Formula for building optimized prompts
+- Example 12: Prompt Wizard — From Vague Idea to Generated App
+  - Full walkthrough: "build me an agent that helps with cooking" → optimized multi-agent prompt
+  - Shows all 8 questions answered and the transformation result
+- Isolated subagent test: vague request → protocol activation → code generation → successful execution
+
 ## [1.6.1] - 2026-03-03
 
 ### Added
