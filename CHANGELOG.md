@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.1] - 2026-03-03
+
+### Added
+- Guideline #26: generated code must use `from dotenv import load_dotenv; load_dotenv()` and read keys via `os.environ`; prompt user to create `.env` with required keys
+- Cooking assistant example in README.md showing single-prompt → full app workflow
+
 ## [1.7.0] - 2026-03-03
 
 ### Added

@@ -69,6 +69,27 @@ Or just ask naturally:
 "Build a parallel research agent with map-reduce"
 ```
 
+### Example: Cooking Assistant (from vague idea to full app)
+
+A single prompt like this:
+
+```
+/langgraph Build a cooking assistant with 2 specialized agents:
+1. "recipe_finder" — searches recipe database based on available ingredients,
+   filters by user dietary preferences from memory store
+2. "cooking_guide" — walks user through recipe step-by-step with a timer tool
+
+Architecture: Supervisor StateGraph routes between agents based on conversation phase.
+Use create_react_agent for recipe_finder with search tool and RetryPolicy.
+Add MemorySaver for session persistence.
+Add InMemoryStore for user profiles with namespace ("cooking", user_id) storing
+dietary preferences and favorite recipes.
+Stream with stream_mode="messages" for real-time cooking step narration.
+Save to cooking_assistant.py.
+```
+
+...generates a complete, runnable multi-agent app. Claude will tell you which API keys to add to a `.env` file.
+
 ## What's Included
 
 ```

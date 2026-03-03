@@ -413,3 +413,4 @@ When building a LangGraph application:
 23. **Set `recursion_limit` for complex agents** — default is 25; use `RemainingSteps` in state for proactive limit checking; always provide a graceful exit when near the limit
 24. **Make side effects before `interrupt()` idempotent** — node re-runs entirely on resume; place non-idempotent operations after `interrupt()`, or use idempotent patterns (upsert, PUT)
 25. **Choose Graph API for complex routing, Functional API for prototyping** — Graph API offers visualization and explicit structure; Functional API uses pure Python control flow with less boilerplate
+26. **Always use `.env` for API keys** — generated code must always include `from dotenv import load_dotenv; load_dotenv()` at the top and read keys via `os.environ`. Never hardcode API keys. After generating the code, tell the user to create a `.env` file in the same directory with the required keys (e.g., `OPENAI_API_KEY=your-key-here`).
